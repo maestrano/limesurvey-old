@@ -175,6 +175,20 @@
 require_once BASEPATH . 'yii' . EXT;
 require_once APPPATH . 'core/LSYii_Application' . EXT;
 
+// Hook:Maestrano
+// Load Maestrano
+require_once ROOT . '/maestrano/app/init/base.php';
+// Require authentication straight away if intranet
+// mode enabled
+$maestrano = MaestranoService::getInstance();
+if ($maestrano->isSsoIntranetEnabled()) {
+  session_start();
+  if (!$maestrano->getSsoSession()->isValid()) {
+    header("Location: " . $maestrano->getSsoInitUrl());
+    exit;
+  }
+}
+
 Yii::createApplication('LSYii_Application', APPPATH . 'config/config' . EXT)->run();
 
 /* End of file index.php */

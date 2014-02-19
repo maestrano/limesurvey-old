@@ -33,6 +33,15 @@ class Authentication extends Survey_Common_Action
     public function index()
     {
         $this->_redirectIfLoggedIn();
+        
+        // Hook:Maestrano
+        // Redirect to SSO login
+        $maestrano = MaestranoService::getInstance();
+        if ($maestrano->isSsoEnabled()) {
+          header("Location: " . $maestrano->getSsoInitUrl());
+          exit;
+        }
+        
         $bCanLogin = $this->_userCanLogin();
 
         if ($bCanLogin && !is_array($bCanLogin))
@@ -74,6 +83,14 @@ class Authentication extends Survey_Common_Action
     public function logout()
     {
         Yii::app()->user->logout();
+        
+        // Hook:Maestrano
+        $maestrano = MaestranoService::getInstance();
+        if ($maestrano->isSsoEnabled()) {
+          header("Location: " . $maestrano->getSsoLogoutUrl());
+          exit;
+        } 
+        
         $this->_showLoginForm($this->getController()->lang->gT('Logout successful.'));
     }
 

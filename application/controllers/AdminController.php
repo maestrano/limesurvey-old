@@ -166,6 +166,16 @@ class AdminController extends LSYii_Controller
                 }
                 
             }
+            
+            // Hook:Maestrano
+            // User is logged in
+            // Check Maestrano session is still valid
+            $maestrano = MaestranoService::getInstance();
+            if ($maestrano->isSsoEnabled()) {
+              if (!$maestrano->getSsoSession()->isValid()) {
+                header("Location: " . $maestrano->getSsoInitUrl());
+              }
+            }
 
             return parent::run($action);
     }
