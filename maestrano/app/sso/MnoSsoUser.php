@@ -37,29 +37,29 @@ class MnoSsoUser extends MnoSsoBaseUser
    *
    * @return boolean whether the user was successfully set in session or not
    */
-  // protected function setInSession()
-  // {
-  //   // First set $conn variable (need global variable?)
-  //   $conn = $this->connection;
-  //   
-  //   $sel1 = $conn->query("SELECT ID,name,lastlogin FROM user WHERE ID = $this->local_id");
-  //   $chk = $sel1->fetch();
-  //   if ($chk["ID"] != "") {
-  //       $now = time();
-  //       
-  //       // Set session
-  //       $this->session['userid'] = $chk['ID'];
-  //       $this->session['username'] = stripslashes($chk['name']);
-  //       $this->session['lastlogin'] = $now;
-  //       
-  //       // Update last login timestamp
-  //       $upd1 = $conn->query("UPDATE user SET lastlogin = '$now' WHERE ID = $this->local_id");
-  //       
-  //       return true;
-  //   } else {
-  //       return false;
-  //   }
-  // }
+  protected function setInSession()
+  {
+    $user = User::model()->find('uid=:uid', array(':uid'=>$this->local_id));
+    
+    if ($user) {
+      $identity = new UserIdentity($this->uid, '');
+      $identity->authenticate('',true);
+      Yii::app()->user->login($identity);
+      
+      Yii::app()->session['loginID'] = $user->uid;
+      Yii::app()->session['user'] = $user->users_name;
+      Yii::app()->session['full_name'] = $user->full_name;
+      Yii::app()->session['htmleditormode'] = $user->htmleditormode;
+      Yii::app()->session['templateeditormode'] = $user->templateeditormode;
+      Yii::app()->session['questionselectormode'] = $user->questionselectormode;
+      Yii::app()->session['dateformat'] = $user->dateformat;
+      Yii::app()->session['session_hash'] = hash('sha256',getGlobalSetting('SessionName').$user->users_name.$user->uid);
+      
+      return true;
+    } else {
+        return false;
+    }
+  }
   
   
   /**
@@ -69,52 +69,105 @@ class MnoSsoUser extends MnoSsoBaseUser
    *
    * @return the ID of the user created, null otherwise
    */
-  // protected function createLocalUser()
-  // {
-  //   $lid = null;
-  //   
-  //   if ($this->accessScope() == 'private') {
-  //     // First set $conn variable (need global variable?)
-  //     $conn = $this->connection;
-  //     
-  //     // Create user
-  //     $lid = $this->connection->query("CREATE BLA.....");
-  //   }
-  //   
-  //   return $lid;
-  // }
+  protected function createLocalUser()
+  {
+    $lid = null;
+    
+    if ($this->accessScope() == 'private') {
+      
+      // Build user and save it
+      $user = $this->buildLocalUser();
+      $user->save();
+      
+      $lid = $user->uid;
+    }
+    
+    return $lid;
+  }
+  
+  /**
+   * Used by createLocalUserOrDenyAccess to create a local user 
+   * based on the sso user.
+   * If the method returns null then access is denied
+   *
+   * @return the ID of the user created, null otherwise
+   */
+  protected function buildLocalUser()
+  {
+    $is_admin = $this->getRoleIdToAssign();
+    
+    $user = new User;
+    $user->users_name = $this->uid;
+    $user->full_name = "$this->name $this->surname";
+    $user->email = $this->email;
+    $user->lang = 'auto';
+    $user->password = $this->generatePassword();
+    $user->create_survey = $is_admin;
+    $user->create_user = $is_admin;
+    $user->participant_panel = $is_admin;
+    $user->delete_user = $is_admin;
+    $user->superadmin = $is_admin;
+    $user->configurator = $is_admin;
+    $user->manage_template = $is_admin;
+    $user->manage_label = $is_admin;
+    
+    return $user;
+  }
+  
+  /**
+   * Return 1 if admin 0 otherwise
+   *
+   * @return 1 or 0 (integer boolean flag )
+   */
+  public function getRoleIdToAssign() {
+    $role_id = 0; // User
+    
+    if ($this->app_owner) {
+      $role_id = 1; // Admin
+    } else {
+      foreach ($this->organizations as $organization) {
+        if ($organization['role'] == 'Admin' || $organization['role'] == 'Super Admin') {
+          $role_id = 1;
+        } else {
+          $role_id = 0;
+        }
+      }
+    }
+    
+    return $role_id;
+  }
   
   /**
    * Get the ID of a local user via Maestrano UID lookup
    *
    * @return a user ID if found, null otherwise
    */
-  // protected function getLocalIdByUid()
-  // {
-  //   $result = $this->connection->query("SELECT ID FROM user WHERE mno_uid = {$this->connection->quote($this->uid)} LIMIT 1")->fetch();
-  //   
-  //   if ($result && $result['ID']) {
-  //     return $result['ID'];
-  //   }
-  //   
-  //   return null;
-  // }
+  protected function getLocalIdByUid()
+  {
+    $user = User::model()->find('mno_uid=:mno_uid', array(':mno_uid'=>$this->uid));
+    
+    if ($user) {
+      return $user->uid;
+    }
+    
+    return null;
+  }
   
   /**
    * Get the ID of a local user via email lookup
    *
    * @return a user ID if found, null otherwise
    */
-  // protected function getLocalIdByEmail()
-  // {
-  //   $result = $this->connection->query("SELECT ID FROM user WHERE email = {$this->connection->quote($this->email)} LIMIT 1")->fetch();
-  //   
-  //   if ($result && $result['ID']) {
-  //     return $result['ID'];
-  //   }
-  //   
-  //   return null;
-  // }
+  protected function getLocalIdByEmail()
+  {
+    $user = User::model()->find('email=:email', array(':email'=>$this->email));
+    
+    if ($user) {
+      return $user->uid;
+    }
+    
+    return null;
+  }
   
   /**
    * Set all 'soft' details on the user (like name, surname, email)
@@ -122,28 +175,32 @@ class MnoSsoUser extends MnoSsoBaseUser
    *
    * @return boolean whether the user was synced or not
    */
-   // protected function syncLocalDetails()
-   // {
-   //   if($this->local_id) {
-   //     $upd = $this->connection->query("UPDATE user SET name = {$this->connection->quote($this->name . ' ' . $this->surname)}, email = {$this->connection->quote($this->email)} WHERE ID = $this->local_id");
-   //     return $upd;
-   //   }
-   //   
-   //   return false;
-   // }
+   protected function syncLocalDetails()
+   {
+     if($this->local_id) {
+       $user = User::model()->find('uid=:uid', array(':uid'=>$this->local_id));
+       $user->users_name = $this->uid;
+       $user->full_name = "$this->name $this->surname";
+       $user->email = $this->email;
+       return $user->save();
+     }
+     
+     return false;
+   }
   
   /**
    * Set the Maestrano UID on a local user via id lookup
    *
    * @return a user ID if found, null otherwise
    */
-  // protected function setLocalUid()
-  // {
-  //   if($this->local_id) {
-  //     $upd = $this->connection->query("UPDATE user SET mno_uid = {$this->connection->quote($this->uid)} WHERE ID = $this->local_id");
-  //     return $upd;
-  //   }
-  //   
-  //   return false;
-  // }
+  protected function setLocalUid()
+  {
+    if($this->local_id) {
+      $user = User::model()->find('uid=:uid', array(':uid'=>$this->local_id));
+      $user->mno_uid = $this->uid;
+      return $user->save();
+    }
+    
+    return false;
+  }
 }
