@@ -23,19 +23,19 @@ $application_folder = APP_DIR . "/application";
  *  Resolve the system path for increased reliability
  * ---------------------------------------------------------------
  */
-	if (realpath($system_path) !== FALSE)
-	{
-		$system_path = realpath($system_path).'/';
-	}
+if (realpath($system_path) !== FALSE)
+{
+	$system_path = realpath($system_path).'/';
+}
 
-	// ensure there's a trailing slash
-	$system_path = rtrim($system_path, '/').'/';
+// ensure there's a trailing slash
+$system_path = rtrim($system_path, '/').'/';
 
-	// Is the system path correct?
-	if (!is_dir($system_path))
-	{
-		exit("Your system folder path does not appear to be set correctly. Please open the following file and correct this: ".pathinfo(APP_DIR, PATHINFO_BASENAME));
-	}
+// Is the system path correct?
+if (!is_dir($system_path))
+{
+	exit("Your system folder path does not appear to be set correctly. Please open the following file and correct this: ".pathinfo(APP_DIR, PATHINFO_BASENAME));
+}
 
 /*
  * -------------------------------------------------------------------
@@ -95,9 +95,6 @@ else
     define('YII_DEBUG', false);
     error_reporting(0);
 }
-
-//define('YII_DEBUG', false);
-//error_reporting(E_ALL);
 
 /*
  * --------------------------------------------------------------------
