@@ -64,7 +64,7 @@ class MnoSsoUser extends MnoSsoBaseUser
       Yii::app()->session['USER_RIGHT_DELETE_USER']       = ($user->delete_user || $user->superadmin);
       Yii::app()->session['USER_RIGHT_MANAGE_TEMPLATE']   = ($user->manage_template || $user->superadmin);
       Yii::app()->session['USER_RIGHT_MANAGE_LABEL']      = ($user->manage_label || $user->superadmin);
-      Yii::app()->session['USER_RIGHT_INITIALSUPERADMIN'] = ($this->app_owner ? 1 : 0);
+      Yii::app()->session['USER_RIGHT_INITIALSUPERADMIN'] = $user->superadmin;
       
       
       return true;
