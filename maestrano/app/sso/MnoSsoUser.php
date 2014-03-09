@@ -55,6 +55,18 @@ class MnoSsoUser extends MnoSsoBaseUser
       Yii::app()->session['dateformat'] = $user->dateformat;
       Yii::app()->session['session_hash'] = hash('sha256',getGlobalSetting('SessionName').$user->users_name.$user->uid);
       
+      // Set rights
+      Yii::app()->session['USER_RIGHT_SUPERADMIN'] = $user->superadmin;
+      Yii::app()->session['USER_RIGHT_CREATE_SURVEY']     = ($user->create_survey || $user->superadmin);
+      Yii::app()->session['USER_RIGHT_PARTICIPANT_PANEL'] = ($user->participant_panel || $user->superadmin);
+      Yii::app()->session['USER_RIGHT_CONFIGURATOR']      = ($user->configurator || $user->superadmin);
+      Yii::app()->session['USER_RIGHT_CREATE_USER']       = ($user->create_user || $user->superadmin);
+      Yii::app()->session['USER_RIGHT_DELETE_USER']       = ($user->delete_user || $user->superadmin);
+      Yii::app()->session['USER_RIGHT_MANAGE_TEMPLATE']   = ($user->manage_template || $user->superadmin);
+      Yii::app()->session['USER_RIGHT_MANAGE_LABEL']      = ($user->manage_label || $user->superadmin);
+      Yii::app()->session['USER_RIGHT_INITIALSUPERADMIN'] = ($this->app_owner ? 1 : 0);
+      
+      
       return true;
     } else {
         return false;
