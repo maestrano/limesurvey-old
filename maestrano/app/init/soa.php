@@ -85,6 +85,7 @@ else
 {
     $aSettings=array();
 }
+/*
 if (isset($aSettings['config']['debug']) && $aSettings['config']['debug']>0)
 {
     define('YII_DEBUG', true);
@@ -95,6 +96,10 @@ else
     define('YII_DEBUG', false);
     error_reporting(0);
 }
+ * 
+ */
+define('YII_DEBUG', true);
+    error_reporting(E_ALL);
 
 /*
  * --------------------------------------------------------------------
@@ -109,23 +114,12 @@ require_once BASEPATH . 'yii' . EXT;
 require_once APPPATH . 'core/LSYii_Application' . EXT;
 
 Yii::createApplication('LSYii_Application', APPPATH . 'config/config' . EXT);
+Yii::import('application.helpers.common_helper', true);
 
 require_once APPPATH . 'helpers/globalsettings_helper.php';
 
-//-----------------------------------------------
-// Perform your custom preparation code
-//-----------------------------------------------
-// If you define the $opts variable then it will
-// automatically be passed to the MnoSsoUser object
-// for construction
-// e.g:
-// $opts = array();
-// if (!empty($db_name) and !empty($db_user)) {
-//     $conn = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8", $db_user, $db_pass);
-//     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
-//     
-//     $opts['db_connection'] = $conn;
-// }
-MaestranoService::setAfterSsoSignInPath('/index.php/admin');
+$opts['db_connection'] = Yii::app()->db;
 
+MnoSoaDB::initialize($opts['db_connection']);
+MnoSoaLogger::initialize();
 

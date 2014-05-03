@@ -138,6 +138,36 @@ class MaestranoService
     }
     
     /**
+     * Check if Maestrano integration is enabled
+     *
+     * @return boolean
+     */
+     public function isSoaEnabled()
+     {
+       return (self::$_settings && self::$_settings->soa_enabled);
+     }
+     
+     /**
+     * Return Maestrano integration service endpoint
+     *
+     * @return string url
+     */
+    public function getSoaUrl()
+    {
+      return self::$_settings->soa_url . self::$_settings->app_id . "/";
+    }
+    
+    /**
+     * Return Application ID
+     *
+     * @return string id
+     */
+    public function getAppId()
+    {
+      return self::$_settings->app_id;
+    }
+    
+    /**
      * Return the after sso signin path
      *
      * @return string url

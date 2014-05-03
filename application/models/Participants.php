@@ -391,6 +391,21 @@ class Participants extends CActiveRecord
             Yii::app()->db->createCommand()->delete(Survey_links::model()->tableName(), array('in', 'participant_id', $aParticipantsIDs));
             // Delete participant attributes
             Yii::app()->db->createCommand()->delete(Participant_attribute::model()->tableName(), array('in', 'participant_id', $aParticipantsIDs));
+            
+            // MNO HOOK
+            // Get Maestrano Service
+            $mno_person=new MnoSoaPerson();
+            $maestrano = MaestranoService::getInstance();
+            if ($maestrano->isSoaEnabled() and $maestrano->getSoaUrl()) {
+                if (is_array($aParticipantsIDs)) {
+                    foreach($aParticipantsIDs as $aParticipantsID) {
+                        // DISABLED DELETE NOTIFICATIONS
+                        $mno_person->sendDeleteNotification($aParticipantsID);
+                    }
+                } else if (is_string($aParticipantsIDs) || is_integer($aParticipantsIDs)) {
+                    $mno_person->sendDeleteNotification($aParticipantsID);
+                }
+            }
         }
     }
 
