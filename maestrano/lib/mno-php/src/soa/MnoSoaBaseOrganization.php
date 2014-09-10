@@ -174,8 +174,8 @@ class MnoSoaBaseOrganization extends MnoSoaBaseEntity
 	MnoSoaLogger::debug(__FUNCTION__ . " after Industry");
 	$this->pushAnnualRevenue();
 	MnoSoaLogger::debug(__FUNCTION__ . " after Annual Revenue");
-        $this->pushCapital();
-        MnoSoaLogger::debug(__FUNCTION__ . " after Capital");
+    $this->pushCapital();
+    MnoSoaLogger::debug(__FUNCTION__ . " after Capital");
 	$this->pushNumberOfEmployees();
 	MnoSoaLogger::debug(__FUNCTION__ . " after Number of Employees");
 	$this->pushAddresses();

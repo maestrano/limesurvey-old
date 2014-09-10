@@ -1,12 +1,11 @@
 <?php
 
 /**
- * Mno Organization Class
+ * Mno Person Class
  */
 class MnoSoaPerson extends MnoSoaBasePerson
 {
     protected static $_local_entity_name = "PARTICIPANT";
-    protected static $_related_organization_class = "";
     
     protected function pushName() {
         // DO NOTHING
@@ -100,6 +99,19 @@ class MnoSoaPerson extends MnoSoaBasePerson
     
     public function insertLocalEntity()
     {
+        // Save the Person as a Label under its Organization Labelset
+        $orgLset = Labelsets::model()->findByAttributes(array('mno_uid' => $this->_role->organization->id));
+        $count = Label::model()->count('lid = ' . $orgLset->lid);
+        $lbl = new Label;
+        $lbl->lid = $orgLset->lid;
+        $lbl->sortorder = $count;
+        $lbl->code = 'L0' . $count;
+        $lbl->title = $this->_local_entity->firstname . ' ' . $this->_local_entity->lastname;
+        $lbl->language = sanitize_languagecodeS($orgLset->languages);
+        $lbl->mno_uid = $this->_id;
+        $lbl->save();
+
+        // Save in participants table
         $table_prefix = Yii::app()->db->tablePrefix;
         $query = "INSERT INTO ".$table_prefix."participants
                   (participant_id,firstname,lastname,email,language,blacklisted,owner_uid) 
@@ -119,6 +131,12 @@ class MnoSoaPerson extends MnoSoaBasePerson
     
     public function updateLocalEntity()
     {
+        // Save the Person as a Label under its Organization Labelset
+        $lset = Label::model()->findByAttributes(array('mno_uid' => $this->_id));
+        $lset->label_name = $this->_local_entity->firstname . ' ' . $this->_local_entity->lastname;
+        $lset->save();
+
+        // Save in participants table
         $table_prefix = Yii::app()->db->tablePrefix;
         $query = "UPDATE ".$table_prefix."participants 
                   SET   firstname=:firstname,
