@@ -7,6 +7,12 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
 {
     protected static $_local_entity_name = "ORGANIZATION";
     
+    public function setName($name) {
+      $this->_local_entity->name = $name;
+      $this->_local_entity->_name = $name;
+      $this->_name = $name;
+    }
+
     protected function pushName() {
     }
     
@@ -83,19 +89,8 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
     
     public function insertLocalEntity()
     {
-        // Save the Organziation as a Label under Labelset 'ORGANIZATIONS'
-        $orgLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'ORGANIZATIONS'));
-        $count = Label::model()->count('lid = ' . $orgLabelSet->lid);
-        $lbl = new Label;
-        $lbl->lid = $orgLabelSet->lid;
-        $lbl->sortorder = $count;
-        $lbl->code = 'O' . $count;
-        $lbl->title = $this->_local_entity->name;
-        $lbl->language = sanitize_languagecodeS($this->_local_entity->languages);
-        $lbl->mno_uid = $this->_local_entity->mno_uid;
-        $lbl->save();
-
-        return getLastInsertID($lset->tableName());
+        $this->saveAsLabel();
+        return getLastInsertID($lbl->tableName());
     }
     
     public function updateLocalEntity()
@@ -125,6 +120,22 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
         $obj = (object) array();
         $obj->languages = 'en';
         return $obj;
+    }
+
+    public function saveAsLabel() {
+        // Save the Organziation as a Label under Labelset 'ORGANIZATIONS'
+        $orgLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'ORGANIZATIONS'));
+        $count = Label::model()->count('lid = ' . $orgLabelSet->lid);
+        $lbl = new Label;
+        $lbl->lid = $orgLabelSet->lid;
+        $lbl->sortorder = $count;
+        $lbl->code = 'O' . $count;
+        $lbl->title = $this->_local_entity->name;
+        $lbl->language = sanitize_languagecodeS($this->_local_entity->languages);
+        $lbl->mno_uid = $this->_local_entity->mno_uid;
+        $lbl->save();
+
+        return $lbl;
     }
 }
 

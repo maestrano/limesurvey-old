@@ -177,13 +177,12 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
         
         $mno_response_id = $response->id;
         $mno_response_has_id = !empty($mno_response_id);
-  
         if ($mno_had_no_id && $local_entity_now_has_id && $mno_response_has_id) {
             MnoSoaDB::addIdMapEntry($local_entity_id, static::getLocalEntityName(), $mno_response_id, static::getMnoEntityName());
         }
         
         MnoSoaLogger::debug(__FUNCTION__ . " end");
-        return true;
+        return $mno_response_id;
     }
     
     public function receive($mno_entity) 
