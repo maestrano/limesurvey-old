@@ -64,7 +64,15 @@ class MnoSoaPerson extends MnoSoaBasePerson
     protected function pullWebsites() {
         // DO NOTHING
     }
-    
+
+    protected function pushNotes() {
+        // DO NOTHING
+    }
+
+    protected function pullNotes() {
+        // DO NOTHING
+    }
+
     protected function pushEntity() {
         // DO NOTHING
     }
@@ -99,15 +107,18 @@ class MnoSoaPerson extends MnoSoaBasePerson
     
     public function insertLocalEntity()
     {
-        // Save the Person as a Label under its Organization Labelset
-        $orgLset = Labelsets::model()->findByAttributes(array('mno_uid' => $this->_role->organization->id));
-        $count = Label::model()->count('lid = ' . $orgLset->lid);
+        // Save the Person as a Label under Labelset 'PERSONS'
+        // The Label code is a combination of the person's organization code and a counter
+        // (eg: 'O10P4' for Organization n10 and Person n4)
+        $orgLabel = Label::model()->findByAttributes(array('mno_uid' => $this->_role->organization->id));
+        $pplLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'PERSONS'));
+        $count = Label::model()->count('lid = ' . $pplLabelSet->lid);
         $lbl = new Label;
-        $lbl->lid = $orgLset->lid;
+        $lbl->lid = $pplLabelSet->lid;
         $lbl->sortorder = $count;
-        $lbl->code = 'L0' . $count;
+        $lbl->code = $orgLabel->code . 'P' . $count;
         $lbl->title = $this->_local_entity->firstname . ' ' . $this->_local_entity->lastname;
-        $lbl->language = sanitize_languagecodeS($orgLset->languages);
+        $lbl->language = sanitize_languagecodeS($pplLabelSet->languages);
         $lbl->mno_uid = $this->_id;
         $lbl->save();
 
@@ -133,7 +144,7 @@ class MnoSoaPerson extends MnoSoaBasePerson
     {
         // Save the Person as a Label under its Organization Labelset
         $lset = Label::model()->findByAttributes(array('mno_uid' => $this->_id));
-        $lset->label_name = $this->_local_entity->firstname . ' ' . $this->_local_entity->lastname;
+        $lset->title = $this->_local_entity->firstname . ' ' . $this->_local_entity->lastname;
         $lset->save();
 
         // Save in participants table
@@ -157,9 +168,18 @@ class MnoSoaPerson extends MnoSoaBasePerson
                     ->query();
         return true;
     }
-    
-    public static function getLocalEntityByLocalIdentifier($local_id)
+
+    public function getLocalOrganizationIdentifier()
     {
+        return null;
+    }
+    
+    protected function setLocalOrganizationIdentifier($local_org_id)
+    {
+        // DO NOTHING
+    }
+    
+    public static function getLocalEntityByLocalIdentifier($local_id) {
         $table_prefix = Yii::app()->db->tablePrefix;
         $query = "SELECT participant_id,firstname,lastname,email,language,blacklisted,owner_uid
                     FROM ".$table_prefix."participants
@@ -171,23 +191,73 @@ class MnoSoaPerson extends MnoSoaBasePerson
         return (object) $result;
     }
     
-    public static function createLocalEntity()
-    {
+    public static function createLocalEntity() {
         $obj = (object) array();
         $obj->language = 'en';
         $obj->blacklisted = 'N';
         $obj->owner_uid = 1;
         return $obj;
     }
-    
-    public function getLocalOrganizationIdentifier()
-    {
-        return null;
+
+    public static function updateFromSurveyAttributes($data) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start");
+        // Populate attributes and push to connec!
+        $organizationUid = MnoSoaPerson::extractMnoUid($data, 'ORGANIZATIONS');
+        $personUid = MnoSoaPerson::extractMnoUid($data, 'PERSONS');
+
+        if(!is_null($organizationUid) && !is_null($personUid)) {
+          MnoSoaLogger::debug(__FUNCTION__ . " uodating notes for person uid " . $personUid);
+          $mno_person = new MnoSoaPerson();
+          $mno_person->_id = $personUid;
+          $mno_person->_notes = array();
+
+          foreach ($data as $key=>$value) {
+            if(preg_match_all("/(\d+)X(\d+)X(\d+).*/", $key, $matches)) {
+              $val = (is_null($value) ? NULL : $value['value']);
+              if(is_null($val)) {
+                continue;
+              }
+
+              $question_id = $matches[3][0];
+              MnoSoaLogger::debug(__FUNCTION__ . " finding question " . $question_id);
+
+              $question = Questions::model()->findByAttributes(array('qid' => $question_id));
+              $answer = Answers::model()->findByAttributes(array('code' => $val));
+              if(!is_null($question)) {
+                MnoSoaLogger::debug(__FUNCTION__ . " adding note: " . $question->question . " => " . ($answer ? $answer->answer : $val));
+                $mno_person->_notes[$key] = array('description' => $question->question . " => " . ($answer ? $answer->answer : $val));
+              }
+            }
+          }
+
+          $mno_person->send($mno_person->_local_entity);
+        }
+ 
+        MnoSoaLogger::debug(__FUNCTION__ . " end");
     }
-    
-    protected function setLocalOrganizationIdentifier($local_org_id)
-    {
-        // DO NOTHING
+
+    private static function extractMnoUid($data, $labelSetName) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start");
+        foreach ($data as $key=>$value) {
+          $val = (is_null($value) ? NULL : $value['value']);
+          MnoSoaLogger::debug(__FUNCTION__ . " response: " . $key . " => " . $val);
+
+          // Find answers to survey questions
+          if(preg_match_all("/(\d+)X(\d+)X(\d+).*/", $key, $matches)) {
+            // Does the answer match a Label Organzation or Person
+            $label = Label::model()->findByAttributes(array('code' => $val));
+            MnoSoaLogger::debug(__FUNCTION__ . " found matching label " . $label->code);
+            if(!is_null($label)) {
+              $isOrganizationLset = Labelsets::model()->count('lid = ' . $label->lid . ' AND mno_uid = \'' . $labelSetName . '\'');
+              if($isOrganizationLset > 0) {
+                return $label->mno_uid;
+              }
+            }
+          }
+        }
+        MnoSoaLogger::debug(__FUNCTION__ . " end");
+
+        return null;
     }
 }
 

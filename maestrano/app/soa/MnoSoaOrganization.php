@@ -83,20 +83,13 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
     
     public function insertLocalEntity()
     {
-        // Save the Organization both as a Labelset with a list of People underneath
-        // and as a Label under the 'Organizations' Labelset
-        $lset = new Labelsets;
-        $lset->label_name = $this->_local_entity->name;
-        $lset->languages = sanitize_languagecodeS($this->_local_entity->languages);
-        $lset->mno_uid = $this->_local_entity->mno_uid;
-        $lset->save();
-
-        $orgLset = Labelsets::model()->findByAttributes(array('mno_uid' => 0));
-        $count = Label::model()->count('lid = ' . $orgLset->lid);
+        // Save the Organziation as a Label under Labelset 'ORGANIZATIONS'
+        $orgLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'ORGANIZATIONS'));
+        $count = Label::model()->count('lid = ' . $orgLabelSet->lid);
         $lbl = new Label;
-        $lbl->lid = $orgLset->lid;
+        $lbl->lid = $orgLabelSet->lid;
         $lbl->sortorder = $count;
-        $lbl->code = 'L0' . $count;
+        $lbl->code = 'O' . $count;
         $lbl->title = $this->_local_entity->name;
         $lbl->language = sanitize_languagecodeS($this->_local_entity->languages);
         $lbl->mno_uid = $this->_local_entity->mno_uid;
@@ -107,10 +100,6 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
     
     public function updateLocalEntity()
     {
-        $lset = Labelsets::model()->findByAttributes(array('mno_uid' => $this->_id));
-        $lset->label_name = $this->_local_entity->name;
-        $lset->save();
-
         $lset = Label::model()->findByAttributes(array('mno_uid' => $this->_id));
         $lset->label_name = $this->_local_entity->name;
         $lset->save();

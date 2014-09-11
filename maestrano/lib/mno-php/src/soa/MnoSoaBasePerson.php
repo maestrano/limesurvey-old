@@ -23,6 +23,7 @@ class MnoSoaBasePerson extends MnoSoaBaseEntity
     protected $_email;
     protected $_telephone;
     protected $_website;
+    protected $_notes;
     protected $_entity;
     protected $_role;  
 
@@ -84,6 +85,14 @@ class MnoSoaBasePerson extends MnoSoaBaseEntity
     
     protected function pullWebsites() {
 		throw new Exception('Function '. __FUNCTION__ . ' must be overriden in MnoPerson class!');
+    }
+
+    protected function pushNotes() {
+        throw new Exception('Function '. __FUNCTION__ . ' must be overriden in MnoPerson class!');
+    }
+    
+    protected function pullNotes() {
+        throw new Exception('Function '. __FUNCTION__ . ' must be overriden in MnoPerson class!');
     }
     
     protected function pushEntity() {
@@ -227,6 +236,8 @@ class MnoSoaBasePerson extends MnoSoaBaseEntity
         MnoSoaLogger::debug(__FUNCTION__ . " after Telephones");
         $this->pushWebsites();
         MnoSoaLogger::debug(__FUNCTION__ . " after Websites");
+        $this->pushNotes();
+        MnoSoaLogger::debug(__FUNCTION__ . " after Notes");
         $this->pushEntity();
         MnoSoaLogger::debug(__FUNCTION__ . " after Entity");
         $this->pushRole();
@@ -239,6 +250,7 @@ class MnoSoaBasePerson extends MnoSoaBaseEntity
         if ($this->_email != null) { $msg['person']->contacts->email = $this->_email; }
         if ($this->_telephone != null) { $msg['person']->contacts->telephone = $this->_telephone; }
         if ($this->_website != null) { $msg['person']->contacts->website = $this->_website; }
+        if ($this->_notes != null) { $msg['person']->notes = $this->_notes; }
         if ($this->_entity != null) { $msg['person']->entity = $this->_entity; }
         if ($this->_role != null) { $msg['person']->role = $this->_role; }
 	
@@ -270,6 +282,7 @@ class MnoSoaBasePerson extends MnoSoaBaseEntity
             $this->set_if_array_key_has_value($this->_website, 'website', $mno_entity->contacts);
         }
 
+        $this->set_if_array_key_has_value($this->_notes, 'notes', $mno_entity);
         $this->set_if_array_key_has_value($this->_entity, 'entity', $mno_entity);
         $this->set_if_array_key_has_value($this->_role, 'role', $mno_entity);
 
@@ -301,6 +314,8 @@ class MnoSoaBasePerson extends MnoSoaBaseEntity
         MnoSoaLogger::debug(__FUNCTION__ . " after telephones");
         $this->pullWebsites();
         MnoSoaLogger::debug(__FUNCTION__ . " after websites");
+        $this->pullNotes();
+        MnoSoaLogger::debug(__FUNCTION__ . " after notes");
         $this->pullEntity();
         MnoSoaLogger::debug(__FUNCTION__ . " after entity");
         $this->pullRole();

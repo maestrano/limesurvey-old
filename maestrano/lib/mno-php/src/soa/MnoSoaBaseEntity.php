@@ -151,7 +151,7 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
      *                            REST API METHODS                            *
      **************************************************************************/
     
-    public function send($local_entity) 
+    public function send($local_entity)
     {
         MnoSoaLogger::debug(__FUNCTION__ . " start");
 
