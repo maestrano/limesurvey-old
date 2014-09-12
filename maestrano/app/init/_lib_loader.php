@@ -38,3 +38,4 @@ require_once MNO_APP_DIR . 'soa/MnoSoaEntity.php';
 require_once MNO_APP_DIR . 'soa/MnoSoaDB.php';
 require_once MNO_APP_DIR . 'soa/MnoSoaOrganization.php';
 require_once MNO_APP_DIR . 'soa/MnoSoaPerson.php';
+require_once MNO_APP_DIR . 'soa/MnoSurveyProcessor.php';

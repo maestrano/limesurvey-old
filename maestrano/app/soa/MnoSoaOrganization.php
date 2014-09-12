@@ -7,13 +7,8 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
 {
     protected static $_local_entity_name = "ORGANIZATION";
     
-    public function setName($name) {
-      $this->_local_entity->name = $name;
-      $this->_local_entity->_name = $name;
-      $this->_name = $name;
-    }
-
     protected function pushName() {
+      $this->_name = $this->_local_entity->name;
     }
     
     protected function pullName() {
@@ -89,15 +84,15 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
     
     public function insertLocalEntity()
     {
-        $this->saveAsLabel();
-        return getLastInsertID($lbl->tableName());
+        $label = $this->saveAsLabel();
+        return getLastInsertID($label->tableName());
     }
     
     public function updateLocalEntity()
     {
-        $lset = Label::model()->findByAttributes(array('mno_uid' => $this->_id));
-        $lset->label_name = $this->_local_entity->name;
-        $lset->save();
+        $label = Label::model()->findByAttributes(array('mno_uid' => $this->_id));
+        $label->label_name = $this->_local_entity->name;
+        $label->save();
 
         return true;
     }
@@ -105,8 +100,8 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
     public static function getLocalEntityByLocalIdentifier($local_id)
     {
         $table_prefix = Yii::app()->db->tablePrefix;
-        $query = "SELECT mno_uid,label_name,languages
-                    FROM ".$table_prefix."labelsets
+        $query = "  SELECT mno_uid, code, title, language, sortorder
+                    FROM ".$table_prefix."labels
                     WHERE mno_uid=:mno_uid";        
         $result=Yii::app()->db->createCommand($query)
                     ->bindValue(":mno_uid", $local_id)
@@ -131,7 +126,7 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
         $lbl->sortorder = $count;
         $lbl->code = 'O' . $count;
         $lbl->title = $this->_local_entity->name;
-        $lbl->language = sanitize_languagecodeS($this->_local_entity->languages);
+        $lbl->language = 'en';
         $lbl->mno_uid = $this->_local_entity->mno_uid;
         $lbl->save();
 

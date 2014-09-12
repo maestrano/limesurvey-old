@@ -6,9 +6,10 @@
 class MnoSoaPerson extends MnoSoaBasePerson
 {
     protected static $_local_entity_name = "PARTICIPANT";
-    
+
     protected function pushName() {
-        // DO NOTHING
+        $this->_name->familyName = $this->_local_entity->lastname;
+        $this->_name->givenNames = $this->_local_entity->firstname;
     }
     
     protected function pullName() {
@@ -66,7 +67,7 @@ class MnoSoaPerson extends MnoSoaBasePerson
     }
 
     protected function pushNotes() {
-        // DO NOTHING
+        $this->_notes = $this->_local_entity->notes;
     }
 
     protected function pullNotes() {
@@ -83,17 +84,20 @@ class MnoSoaPerson extends MnoSoaBasePerson
     
     // @OVERRIDE
     protected function pushRole() {
-        // DO NOTHING
+        $this->_role->organization->id = $this->_local_entity->organization;
     }
     
     // @OVERRIDE
     protected function pullRole() {
-        // DO NOTHING
+        if(isset($this->_role) && isset($this->_role->organization)){
+          $this->_local_entity->organization = $this->_role->organization->id;
+        }
     }
         
     protected function saveLocalEntity($push_to_maestrano, $status) {
         if ($status == constant('MnoSoaBaseEntity::STATUS_NEW_ID')) {
             $this->_local_entity->participant_id = $this->_id;
+            $this->_local_entity->mno_uid = $this->_id;
             $this->insertLocalEntity();
         } else if ($status == constant('MnoSoaBaseEntity::STATUS_EXISTING_ID')) {
             $this->updateLocalEntity();
@@ -107,26 +111,10 @@ class MnoSoaPerson extends MnoSoaBasePerson
     
     public function insertLocalEntity()
     {
-        insertLocalEntityAsLabel();
-
-        // Save in participants table
-        $table_prefix = Yii::app()->db->tablePrefix;
-        $query = "INSERT INTO ".$table_prefix."participants
-                  (participant_id,firstname,lastname,email,language,blacklisted,owner_uid) 
-                  VALUES 
-                  (:participant_id,:firstname,:lastname,:email,:language,:blacklisted,:owner_uid)";
-        $result=Yii::app()->db->createCommand($query)
-                    ->bindValue(":participant_id", $this->_local_entity->participant_id)
-                    ->bindValue(":firstname", $this->_local_entity->firstname)
-                    ->bindValue(":lastname", $this->_local_entity->lastname)
-                    ->bindValue(":email", $this->_local_entity->email)
-                    ->bindValue(":language", $this->_local_entity->language)
-                    ->bindValue(":blacklisted", $this->_local_entity->blacklisted)
-                    ->bindValue(":owner_uid", $this->_local_entity->owner_uid)
-                    ->query();
-        return getLastInsertID('{{participants}}');
+        $this->saveAsLabel();
+        return $this->saveAsParticipant();
     }
-    
+
     public function updateLocalEntity()
     {
         // Save the Person as a Label under its Organization Labelset
@@ -186,179 +174,33 @@ class MnoSoaPerson extends MnoSoaBasePerson
         return $obj;
     }
 
-    public function insertLocalEntityAsLabel()
+    public function saveAsParticipant()
     {
-        $this->saveAsLabel();
-        return getLastInsertID($lbl->tableName());
-    }
-
-    public static function updateFromSurveyAttributes($data) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start");
-        // Populate attributes and push to connec!
-        $organizationUid = MnoSoaPerson::findOrCreateOrganization($data);
-        if(is_null($organizationUid)) {
-          MnoSoaLogger::debug(__FUNCTION__ . " end - Organization not created");
-          return null;
-        }
-
-        $personUid = MnoSoaPerson::findOrCreatePerson($data, $organizationUid);
-        if(is_null($personUid)) {
-          MnoSoaLogger::debug(__FUNCTION__ . " end - Person not created");
-          return null;
-        }
-
-        MnoSoaLogger::debug(__FUNCTION__ . " uodating notes for person uid " . $personUid);
-        $mno_person = new MnoSoaPerson();
-        $mno_person->_id = $personUid;
-        $mno_person->_notes = array();
-
-        foreach ($data as $key=>$value) {
-          if(preg_match_all("/(\d+)X(\d+)X(\d+).*/", $key, $matches)) {
-            $val = (is_null($value) ? NULL : $value['value']);
-            if(is_null($val)) {
-              continue;
-            }
-
-            $question_id = $matches[3][0];
-            MnoSoaLogger::debug(__FUNCTION__ . " finding question " . $question_id);
-
-            $question = Questions::model()->findByAttributes(array('qid' => $question_id));
-            $answer = Answers::model()->findByAttributes(array('code' => $val));
-            if(!is_null($question)) {
-              MnoSoaLogger::debug(__FUNCTION__ . " adding note: " . $question->question . " => " . ($answer ? $answer->answer : $val));
-              $mno_person->_notes[$key] = array('description' => $question->question . " => " . ($answer ? $answer->answer : $val));
-            }
-          }
-
-          $mno_person->send($mno_person->_local_entity);
-        }
- 
-        MnoSoaLogger::debug(__FUNCTION__ . " end");
-    }
-
-    private static function findOrCreateOrganization($data) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start");
-        // Find if ORGANIZATION field is specified
-        $orgQuestion = Questions::model()->findByAttributes(array('title' => 'ORGANIZATION'));
-        if(is_null($orgQuestion)) {
-          return null;
-        }
-
-        MnoSoaLogger::debug(__FUNCTION__ . " organization question id: " . $orgQuestion->qid);
-        // Find selected Organization or create one
-        $selectedOrganization = MnoSoaPerson::getResponse($data, $orgQuestion->qid);
-        if(is_null($selectedOrganization) || $selectedOrganization == '') {
-          return null;
-        }
-
-        // If the selected Organization matches a Label, it already exists
-        $label = Label::model()->findByAttributes(array('code' => $selectedOrganization));
-        if(isset($label)) {
-          MnoSoaLogger::debug(__FUNCTION__ . " end - Organization already exists");
-          return $label->mno_uid;
-        }
-        else {
-          $mno_organization = new MnoSoaOrganization();
-          $mno_organization->setName($selectedOrganization);
-          $mno_uid = $mno_organization->send($mno_organization->_local_entity);
-          $mno_organization->_local_entity->mno_uid = $mno_uid;
-          $newlabel = $mno_organization->saveAsLabel();
-
-          // Save Organization as new possible Answer
-          $answer = new Answers();
-          $answer->sortorder = $newlabel->sortorder;
-          $answer->code = $newlabel->code;
-          $answer->answer = $newlabel->title;
-          $answer->assessment_value = $newlabel->assessment_value;
-          $answer->language = 'en';
-          $answer->save();
-
-          MnoSoaLogger::debug(__FUNCTION__ . " end - Created new Organization");
-          return $mno_uid;
-        }
-    }
-
-    private static function findOrCreatePerson($data, $organizationUid) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start");
-        // Find if ORGANIZATION field is specified
-        $personQuestion = Questions::model()->findByAttributes(array('title' => 'PERSON'));
-        if(is_null($personQuestion)) {
-          return null;
-        }
-
-        MnoSoaLogger::debug(__FUNCTION__ . " person question id: " . $personQuestion->qid);
-        // Find selected Organization or create one
-        $selectedPerson = MnoSoaPerson::getResponse($data, $personQuestion->qid);
-        if(is_null($selectedPerson) || $selectedPerson == '') {
-          return null;
-        }
-
-        // If the selected person matches a Label, it already exists
-        $label = Label::model()->findByAttributes(array('code' => $selectedPerson));
-        if(isset($label)) {
-          return $label->mno_uid;
-        }
-        else {
-          $mno_person = new MnoSoaPerson();
-          $mno_person->_role->organization->id = $organizationUid;
-          $mno_person->_name->familyName = $selectedPerson;
-          $mno_person->_name->givenNames = $selectedPerson;
-          $mno_uid = $mno_person->send($mno_person->_local_entity);
-          $mno_person->_local_entity->mno_uid = $mno_uid;
-          $mno_person->_local_entity->firstname = $selectedPerson;
-          $newlabel = $mno_person->saveAsLabel();
-
-          // Save Person as new possible Answer
-          $answer = new Answers();
-          $answer->sortorder = $newlabel->sortorder;
-          $answer->code = $newlabel->code;
-          $answer->answer = $newlabel->title;
-          $answer->assessment_value = $newlabel->assessment_value;
-          $answer->language = 'en';
-          $answer->save();
-
-          return $mno_uid;
-        }
-
-        MnoSoaLogger::debug(__FUNCTION__ . " end");
-
-        return null;
-    }
-
-    private static function getResponse($data, $questionId) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start");
-
-        // Return the selected response or alternatively try to find a 'comment' response
-        $response = null;
-        foreach ($data as $key=>$value) {
-          MnoSoaLogger::debug(__FUNCTION__ . " key " . $key);
-          if(preg_match_all("/^(\d+)X(\d+)X(\d+)$/", $key, $matches)) {
-            MnoSoaLogger::debug(__FUNCTION__ . " comp " . $matches[3][0] . " and " . $questionId);
-            if($matches[3][0] == strval($questionId)) {
-              $response = $value['value'];
-              MnoSoaLogger::debug(__FUNCTION__ . " found response: " . $response);
-            }
-          }
-
-          if(preg_match_all("/^(\d+)X(\d+)X(\d+)comment$/", $key, $matches)) {
-            if($matches[3][0] == strval($questionId)) {
-              if(is_null($response) || $response == '') {
-                $response = $value['value'];
-                MnoSoaLogger::debug(__FUNCTION__ . " found response comment: " . $response);
-              }
-            }
-          }
-        }
-
-        MnoSoaLogger::debug(__FUNCTION__ . " end returning " . $response);
-
-        return $response;
+        $table_prefix = Yii::app()->db->tablePrefix;
+        $query = "INSERT INTO ".$table_prefix."participants
+                  (participant_id,firstname,lastname,email,language,blacklisted,owner_uid) 
+                  VALUES 
+                  (:participant_id,:firstname,:lastname,:email,:language,:blacklisted,:owner_uid)";
+        $result=Yii::app()->db->createCommand($query)
+                    ->bindValue(":participant_id", $this->_local_entity->participant_id)
+                    ->bindValue(":firstname", $this->_local_entity->firstname)
+                    ->bindValue(":lastname", $this->_local_entity->lastname)
+                    ->bindValue(":email", $this->_local_entity->email)
+                    ->bindValue(":language", $this->_local_entity->language)
+                    ->bindValue(":blacklisted", $this->_local_entity->blacklisted)
+                    ->bindValue(":owner_uid", $this->_local_entity->owner_uid)
+                    ->query();
+        return getLastInsertID('{{participants}}');
     }
 
     public function saveAsLabel() {
         // Save the Person as a Label under Labelset 'PERSONS'
         // The Label code is a combination of the person's organization code and a counter
         // (eg: 'O10P4' for Organization n10 and Person n4)
+        if(is_null($this->_role) || is_null($this->_role->organization) || is_null($this->_role->organization->id)) {
+          return null;
+        }
+
         $orgLabel = Label::model()->findByAttributes(array('mno_uid' => $this->_role->organization->id));
         $pplLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'PERSONS'));
         $count = Label::model()->count('lid = ' . $pplLabelSet->lid);
@@ -367,8 +209,8 @@ class MnoSoaPerson extends MnoSoaBasePerson
         $lbl->sortorder = $count;
         $lbl->code = $orgLabel->code . 'P' . $count;
         $lbl->title = $this->_local_entity->firstname . ' ' . $this->_local_entity->lastname;
-        $lbl->language = sanitize_languagecodeS($pplLabelSet->languages);
-        $lbl->mno_uid = $this->_id;
+        $lbl->language = 'en';
+        $lbl->mno_uid = $this->_local_entity->mno_uid;
         $lbl->save();
 
         return $lbl;

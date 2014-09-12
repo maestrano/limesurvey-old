@@ -94,13 +94,12 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
     protected function pushId() 
     {
         $local_id = $this->getLocalEntityIdentifier();
-
         if (empty($local_id)) {
+          MnoSoaLogger::debug(__FUNCTION__ . " no local id, skipping");
             return;
         }
         
         $mno_id = MnoSoaDB::getMnoIdByLocalId($local_id, static::getLocalEntityName(), static::getMnoEntityName());
-
         if (!$this->isValidIdentifier($mno_id)) {
             return;
         }

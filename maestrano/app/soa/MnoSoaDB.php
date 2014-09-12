@@ -17,23 +17,23 @@ class MnoSoaDB extends MnoSoaBaseDB {
     * @return 	boolean Record inserted
     */    
     public static function addIdMapEntry($local_id, $local_entity_name, $mno_id, $mno_entity_name) {	
-        MnoSoaLogger::debug(__CLASS__ . ' ' . __FUNCTION__ . " start");
+        MnoSoaLogger::debug(__CLASS__ . ' ' . __FUNCTION__ . " start - local_id: " . $local_id . ", local_entity_name: " . strtoupper($local_entity_name) . ", mno_id: " . $mno_id . ", mno_entity_name: " . strtoupper($mno_entity_name));
         $query = "INSERT INTO mno_id_map (mno_entity_guid, mno_entity_name, app_entity_id, app_entity_name, db_timestamp) 
                   VALUES 
                   (:mno_entity_guid,:mno_entity_name,:app_entity_id,:app_entity_name,UTC_TIMESTAMP)";
-        $result=self::$_db->createCommand($query)
+        $result=Yii::app()->db->createCommand($query)
                     ->bindValue(":mno_entity_guid", $mno_id)
                     ->bindValue(":mno_entity_name", strtoupper($mno_entity_name))
                     ->bindValue(":app_entity_id", $local_id)
                     ->bindValue(":app_entity_name", strtoupper($local_entity_name))
                     ->query();
         $id = getLastInsertID('{{mno_id_map}}');
-        
         MnoSoaLogger::debug("addIdMapEntry query = ".$query);
-        
         if (empty($id)) {
+            MnoSoaLogger::debug(__CLASS__ . ' ' . __FUNCTION__ . " mno_id_map creation failed");
             return false;
-        } 
+        }
+        MnoSoaLogger::debug(__CLASS__ . ' ' . __FUNCTION__ . " end");
         
         return true;
     }
@@ -57,11 +57,11 @@ class MnoSoaDB extends MnoSoaBaseDB {
                 . "WHERE app_entity_id=:app_entity_id"
                 . " and app_entity_name=:app_entity_name"
                 . " and mno_entity_name=:mno_entity_name";
-        $result = Yii::app()->db->createCommand($query)
-                    ->bindValue(":app_entity_id", $local_id)
-                    ->bindValue(":app_entity_name", strtoupper($local_entity_name))
-                    ->bindValue(":mno_entity_name", strtoupper($mno_entity_name))
-                    ->queryRow();
+    $result = Yii::app()->db->createCommand($query)
+                ->bindValue(":app_entity_id", $local_id)
+                ->bindValue(":app_entity_name", strtoupper($local_entity_name))
+                ->bindValue(":mno_entity_name", strtoupper($mno_entity_name))
+                ->queryRow();
         
 	// Return id value
 	if (count($result) != 0) {
@@ -78,7 +78,7 @@ class MnoSoaDB extends MnoSoaBaseDB {
             }
 	}
         
-        MnoSoaLogger::debug(__CLASS__ . ' ' . __FUNCTION__ . "returning mno_entity = ".json_encode($mno_entity));
+        MnoSoaLogger::debug(__CLASS__ . ' ' . __FUNCTION__ . " returning mno_entity = ".json_encode($mno_entity));
 	return $mno_entity;
     }
     
