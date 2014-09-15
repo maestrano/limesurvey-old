@@ -7,6 +7,10 @@ class MnoSoaPerson extends MnoSoaBasePerson
 {
     protected static $_local_entity_name = "PARTICIPANT";
 
+    protected function pushId() {
+        $this->_id = $this->_local_entity->id;
+    }
+
     protected function pushName() {
         $this->_name->familyName = $this->_local_entity->lastname;
         $this->_name->givenNames = $this->_local_entity->firstname;
@@ -71,6 +75,14 @@ class MnoSoaPerson extends MnoSoaBasePerson
     }
 
     protected function pullNotes() {
+        // DO NOTHING
+    }
+
+    protected function pushTasks() {
+        $this->_tasks = $this->_local_entity->tasks;
+    }
+
+    protected function pullTasks() {
         // DO NOTHING
     }
 

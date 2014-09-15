@@ -9,14 +9,14 @@ class MnoSurveyProcessor
         MnoSoaLogger::debug(__FUNCTION__ . " start");
 
         // Find or Create an Organization based on user selection
-        $mno_organization_id = MnoSurveyProcessor::findOrCreateOrganization($data);
+        $mno_organization_id = MnoSurveyProcessor::extractSelectedOrganization($data);
         if(is_null($mno_organization_id)) {
           MnoSoaLogger::debug(__FUNCTION__ . " end - Organization not created");
           return null;
         }
 
         // Find or Create a Person based on user selection
-        $mno_person_id = MnoSurveyProcessor::findOrCreatePerson($data, $mno_organization_id);
+        $mno_person_id = MnoSurveyProcessor::extractSelectedPerson($data, $mno_organization_id);
         if(is_null($mno_person_id)) {
           MnoSoaLogger::debug(__FUNCTION__ . " end - Person not created");
           return null;
@@ -52,8 +52,9 @@ class MnoSurveyProcessor
         MnoSoaLogger::debug(__FUNCTION__ . " end");
     }
 
-    private static function findOrCreateOrganization($data) {
+    private static function extractSelectedOrganization($data) {
         MnoSoaLogger::debug(__FUNCTION__ . " start");
+        
         // Find if an ORGANIZATION question exists in the survey
         $orgQuestion = Questions::model()->findByAttributes(array('title' => 'ORGANIZATION'));
         if(is_null($orgQuestion)) {
@@ -61,8 +62,14 @@ class MnoSurveyProcessor
           return null;
         }
         MnoSoaLogger::debug(__FUNCTION__ . " organization question id: " . $orgQuestion->qid);
+        
         // Find selected Organization or create one
         $selectedOrganization = MnoSurveyProcessor::getResponse($data, $orgQuestion->qid);
+        return MnoSurveyProcessor::findOrCreateOrganization($selectedOrganization);
+    }
+
+    public static function findOrCreateOrganization($selectedOrganization) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start");
         if(is_null($selectedOrganization) || $selectedOrganization == '') {
           MnoSoaLogger::debug(__FUNCTION__ . " user did not specify an organization, skipping.");
           return null;
@@ -108,18 +115,24 @@ class MnoSurveyProcessor
         }
     }
 
-    private static function findOrCreatePerson($data, $mno_organization_id) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start for organization: " . $mno_organization_id);
+    private static function extractSelectedPerson($data, $mno_organization_id) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start for organization: $mno_organization_id");
+        
         // Find if a PERSON question exists in the survey
         $personQuestion = Questions::model()->findByAttributes(array('title' => 'PERSON'));
         if(is_null($personQuestion)) {
           MnoSoaLogger::debug(__FUNCTION__ . " survey does not map person, skipping.");
           return null;
         }
-
         MnoSoaLogger::debug(__FUNCTION__ . " person question id: " . $personQuestion->qid);
+        
         // Find selected Organization or create one
         $selectedPerson = MnoSurveyProcessor::getResponse($data, $personQuestion->qid);
+        return MnoSurveyProcessor::findOrCreatePerson($selectedPerson, $mno_organization_id);
+    }
+
+    public static function findOrCreatePerson($selectedPerson, $mno_organization_id) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start for organization: $mno_organization_id, person: $selectedPerson");
         if(is_null($selectedPerson) || $selectedPerson == '') {
           MnoSoaLogger::debug(__FUNCTION__ . " user did not specify a person, skipping.");
           return null;
@@ -177,10 +190,6 @@ class MnoSurveyProcessor
 
           return $mno_uid;
         }
-
-        MnoSoaLogger::debug(__FUNCTION__ . " end");
-
-        return null;
     }
 
     private static function getResponse($data, $questionId) {
