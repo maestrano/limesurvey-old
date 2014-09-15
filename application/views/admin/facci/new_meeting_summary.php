@@ -39,11 +39,6 @@
         <label for='person'><?php $clang->eT("Who did you meet in this organisation?"); ?></label>
         <select name='person' id='person'>
           <option value="">Select Person</option>
-          <?php
-            foreach ($persons as $person) {
-              echo '<option value="' . $person->mno_uid . '">' . $person->title . '</option>';
-            }
-          ?>
         </select>
       </li>
       <li>
@@ -95,6 +90,34 @@
 </form>
 
 <script type="text/javascript">
+  var organizations = {
+    <?php
+      foreach ($organizations as $organization) {
+        echo "'$organization->mno_uid': {name: '$organization->title', code: '$organization->code'},";
+      }
+    ?>
+  };
+
+  var persons = {
+    <?php
+      foreach ($persons as $person) {
+        echo "$person->code: {name: '$person->title', mnoid: '$person->mno_uid'},";
+      }
+    ?>
+  };
+
+  function updatePersonsList() {
+    var selectedOrg = $("#organziation option:selected").val();
+    var selectedOrganizationCode = organizations[selectedOrg]['code'];
+    $('#person').empty();
+    $('#person').append($('<option>').text('Select Person').attr('value', ''));
+    $.each(persons, function(code, value) {
+      if(code.indexOf(selectedOrganizationCode) == 0) {
+        $('#person').append($('<option>').text(value['name']).attr('value', value['mnoid']));
+      }
+    });
+  }
+
   $(document).ready(function() {
       var max_fields      = 10;
       var wrapper         = $("#actions-sections");
@@ -139,12 +162,17 @@
                 changeMonth: true,
                 duration: 'fast'
             }, $.datepicker.regional[userlanguage]);
-        });
+          });
+
+          $(".remove_field:last").click(function(e) {
+            e.preventDefault();
+            $(this).parent('div').parent('div').remove(); x--;
+          });
       });
-     
-      // $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-      //     e.preventDefault(); $(this).parent('div').remove(); x--;
-      // })
+
+      $("#organziation").change(function(e) {
+        updatePersonsList();
+      });
 
       $(add_button).trigger('click');
   });
