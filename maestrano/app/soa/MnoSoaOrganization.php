@@ -130,6 +130,20 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
     $lbl->mno_uid = $this->_local_entity->mno_uid;
     $lbl->save();
 
+    MnoSoaLogger::debug(__FUNCTION__ . " saving organization as a new possible answer");
+    $questions = Questions::model()->findAllByAttributes(array('title' => 'ORGANIZATION'));
+    foreach ($questions as $question) {
+      $qid = $question->attributes['qid'];
+      $answer = new Answers();
+      $answer->qid = $qid;
+      $answer->sortorder = $lbl->sortorder;
+      $answer->code = $lbl->code;
+      $answer->answer = $lbl->title;
+      $answer->assessment_value = $lbl->assessment_value;
+      $answer->language = 'en';
+      $answer->save();
+    }
+
     return $lbl;
   }
 }

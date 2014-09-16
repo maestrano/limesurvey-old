@@ -99,22 +99,6 @@ class MnoSurveyProcessor
           // Save Organization as a new Label
           $newlabel = $mno_organization->saveAsLabel();
 
-          // Save Organization as new possible Answer to surveys
-          MnoSoaLogger::debug(__FUNCTION__ . " saving organization as a new possible answer");
-
-          $questions = Questions::model()->findAllByAttributes(array('title' => 'ORGANIZATION'));
-          foreach ($questions as $question) {
-            $qid = $question->attributes['qid'];
-            $answer = new Answers();
-            $answer->qid = $qid;
-            $answer->sortorder = $newlabel->sortorder;
-            $answer->code = $newlabel->code;
-            $answer->answer = $newlabel->title;
-            $answer->assessment_value = $newlabel->assessment_value;
-            $answer->language = 'en';
-            $answer->save();
-          }
-
           MnoSoaLogger::debug(__FUNCTION__ . " end - created new Organization");
           return $mno_uid;
         }
@@ -179,21 +163,6 @@ class MnoSurveyProcessor
           // Save Person as a new Label
           $newlabel = $mno_person->saveAsLabel();
           $mno_person->saveAsParticipant();
-
-          // Save Person as new possible Answer to surveys
-          MnoSoaLogger::debug(__FUNCTION__ . " saving person as a new possible answer");
-          $questions = Questions::model()->findAllByAttributes(array('title' => 'PERSON'));
-          foreach ($questions as $question) {
-            $qid = $question->attributes['qid'];
-            $answer = new Answers();
-            $answer->qid = $qid;
-            $answer->sortorder = $newlabel->sortorder;
-            $answer->code = $newlabel->code;
-            $answer->answer = $newlabel->title;
-            $answer->assessment_value = $newlabel->assessment_value;
-            $answer->language = 'en';
-            $answer->save();
-          }
 
           return $mno_uid;
         }
