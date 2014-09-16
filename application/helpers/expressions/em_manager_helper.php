@@ -4596,7 +4596,7 @@
                     }
 
                     // Maestrano: Notify connec of Survey answers
-                    MnoSurveyProcessor::updateFromSurveyAttributes($updatedValues);
+                    MnoSurveyProcessor::updateFromSurveyAttributes($this->sid, $updatedValues);
 
                     if ($finished)
                     {

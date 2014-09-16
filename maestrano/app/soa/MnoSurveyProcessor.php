@@ -5,26 +5,29 @@
  */
 class MnoSurveyProcessor
 {
-    public static function updateFromSurveyAttributes($data) {
+    public static function updateFromSurveyAttributes($survey_id, $data) {
         MnoSoaLogger::debug(__FUNCTION__ . " start");
 
         // Find or Create an Organization based on user selection
-        $mno_organization_id = MnoSurveyProcessor::extractSelectedOrganization($data);
+        $mno_organization_id = MnoSurveyProcessor::extractSelectedOrganization($survey_id, $data);
         if(is_null($mno_organization_id)) {
           MnoSoaLogger::debug(__FUNCTION__ . " end - Organization not created");
           return null;
         }
 
         // Find or Create a Person based on user selection
-        $mno_person_id = MnoSurveyProcessor::extractSelectedPerson($data, $mno_organization_id);
+        $mno_person_id = MnoSurveyProcessor::extractSelectedPerson($survey_id, $data, $mno_organization_id);
         if(is_null($mno_person_id)) {
           MnoSoaLogger::debug(__FUNCTION__ . " end - Person not created");
           return null;
         }
 
+        sleep(2);
+
         MnoSoaLogger::debug(__FUNCTION__ . " updating notes for person uid " . $mno_person_id);
         $local_entity = (object) array();
         $local_entity->participant_id = $mno_person_id;
+        $local_entity->id = $mno_person_id;
         $local_entity->notes = array();
         foreach ($data as $key=>$value) {
           if(preg_match_all("/(\d+)X(\d+)X(\d+).*/", $key, $matches)) {
@@ -40,8 +43,9 @@ class MnoSurveyProcessor
             $answer = Answers::model()->findByAttributes(array('code' => $val));
             $answer_value = $answer ? $answer->answer : $val;
             if(!is_null($question) && !is_null($answer_value) && $answer_value != '') {
-              MnoSoaLogger::debug(__FUNCTION__ . " adding note: " . $question->question . " => " . $answer_value);
-              $local_entity->notes[$key] = array('description' => $question->question . " => " . $answer_value);
+              $note_id = "$mno_person_id-$key";
+              MnoSoaLogger::debug(__FUNCTION__ . " adding note key=$note_id - " . $question->question . " => " . $answer_value);
+              $local_entity->notes[$note_id] = array('description' => $question->question . " => " . $answer_value);
             }
           }
         }
@@ -52,11 +56,11 @@ class MnoSurveyProcessor
         MnoSoaLogger::debug(__FUNCTION__ . " end");
     }
 
-    private static function extractSelectedOrganization($data) {
+    private static function extractSelectedOrganization($survey_id, $data) {
         MnoSoaLogger::debug(__FUNCTION__ . " start");
         
         // Find if an ORGANIZATION question exists in the survey
-        $orgQuestion = Questions::model()->findByAttributes(array('title' => 'ORGANIZATION'));
+        $orgQuestion = Questions::model()->findByAttributes(array('title' => 'ORGANIZATION', 'sid' => $survey_id));
         if(is_null($orgQuestion)) {
           MnoSoaLogger::debug(__FUNCTION__ . " survey does not map organization, skipping.");
           return null;
@@ -92,34 +96,37 @@ class MnoSurveyProcessor
           $mno_organization->mno_uid = $mno_uid;
           $local_entity->mno_uid = $mno_uid;
 
-          MnoSoaDB::addIdMapEntry($mno_uid, MnoSoaOrganization::getLocalEntityName(), $mno_uid, 'ORGANIZATIONS');
           MnoSoaLogger::debug(__FUNCTION__ . " created organization: " . $mno_uid);
           
           // Save Organization as a new Label
           $newlabel = $mno_organization->saveAsLabel();
 
-          // Save Organization as new possible Answer to this survey
+          // Save Organization as new possible Answer to surveys
           MnoSoaLogger::debug(__FUNCTION__ . " saving organization as a new possible answer");
-          $answer = new Answers();
-          $answer->qid = $orgQuestion->qid;
-          $answer->sortorder = $newlabel->sortorder;
-          $answer->code = $newlabel->code;
-          $answer->answer = $newlabel->title;
-          $answer->assessment_value = $newlabel->assessment_value;
-          $answer->language = 'en';
-          $answer->save();
-          MnoSoaLogger::debug(__FUNCTION__ . " created new answer");
+
+          $questions = Questions::model()->findAllByAttributes(array('title' => 'ORGANIZATION'));
+          foreach ($questions as $question) {
+            $qid = $question->attributes['qid'];
+            $answer = new Answers();
+            $answer->qid = $qid;
+            $answer->sortorder = $newlabel->sortorder;
+            $answer->code = $newlabel->code;
+            $answer->answer = $newlabel->title;
+            $answer->assessment_value = $newlabel->assessment_value;
+            $answer->language = 'en';
+            $answer->save();
+          }
 
           MnoSoaLogger::debug(__FUNCTION__ . " end - created new Organization");
           return $mno_uid;
         }
     }
 
-    private static function extractSelectedPerson($data, $mno_organization_id) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start for organization: $mno_organization_id");
+    private static function extractSelectedPerson($survey_id, $data, $mno_organization_id) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start for person: $mno_organization_id");
         
         // Find if a PERSON question exists in the survey
-        $personQuestion = Questions::model()->findByAttributes(array('title' => 'PERSON'));
+        $personQuestion = Questions::model()->findByAttributes(array('title' => 'PERSON', 'sid' => $survey_id));
         if(is_null($personQuestion)) {
           MnoSoaLogger::debug(__FUNCTION__ . " survey does not map person, skipping.");
           return null;
@@ -132,7 +139,7 @@ class MnoSurveyProcessor
     }
 
     public static function findOrCreatePerson($selectedPerson, $mno_organization_id) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start for organization: $mno_organization_id, person: $selectedPerson");
+        MnoSoaLogger::debug(__FUNCTION__ . " start for person: $mno_organization_id, person: $selectedPerson");
         if(is_null($selectedPerson) || $selectedPerson == '') {
           MnoSoaLogger::debug(__FUNCTION__ . " user did not specify a person, skipping.");
           return null;
@@ -154,8 +161,8 @@ class MnoSurveyProcessor
           // Split person name
           if (strpos($selectedPerson,' ') !== false) {
             $names = explode(" ", $selectedPerson);
-            $local_entity->lastname = $names[0];
-            $local_entity->firstname = $names[1];
+            $local_entity->lastname = $names[1];
+            $local_entity->firstname = $names[0];
           } else {
             $local_entity->lastname = $selectedPerson;
           }
@@ -169,24 +176,26 @@ class MnoSurveyProcessor
           $local_entity->participant_id = $mno_uid;
           $local_entity->mno_uid = $mno_uid;
 
-          MnoSoaDB::addIdMapEntry($mno_uid, MnoSoaPerson::getLocalEntityName(), $mno_uid, 'PERSONS');
           MnoSoaLogger::debug(__FUNCTION__ . " created person: " . $mno_uid);
 
           // Save Person as a new Label
           $newlabel = $mno_person->saveAsLabel();
           $mno_person->saveAsParticipant();
 
-          // Save Person as new possible Answer to this survey
+          // Save Person as new possible Answer to surveys
           MnoSoaLogger::debug(__FUNCTION__ . " saving person as a new possible answer");
-          $answer = new Answers();
-          $answer->qid = $personQuestion->qid;
-          $answer->sortorder = $newlabel->sortorder;
-          $answer->code = $newlabel->code;
-          $answer->answer = $newlabel->title;
-          $answer->assessment_value = $newlabel->assessment_value;
-          $answer->language = 'en';
-          $answer->save();
-          MnoSoaLogger::debug(__FUNCTION__ . " created new answer: " . $answer->code);
+          $questions = Questions::model()->findAllByAttributes(array('title' => 'PERSON'));
+          foreach ($questions as $question) {
+            $qid = $question->attributes['qid'];
+            $answer = new Answers();
+            $answer->qid = $qid;
+            $answer->sortorder = $newlabel->sortorder;
+            $answer->code = $newlabel->code;
+            $answer->answer = $newlabel->title;
+            $answer->assessment_value = $newlabel->assessment_value;
+            $answer->language = 'en';
+            $answer->save();
+          }
 
           return $mno_uid;
         }
