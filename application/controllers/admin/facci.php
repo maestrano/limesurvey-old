@@ -3,7 +3,6 @@
 class Facci extends Survey_Common_Action {
 
   public function create() {
-    $clang = Yii::app()->lang;
     $aData = array();
     if (Yii::app()->session['USER_RIGHT_SUPERADMIN'] == 1) {
       // Fetch the organizations
@@ -30,10 +29,6 @@ class Facci extends Survey_Common_Action {
   public function save() {
     MnoSoaLogger::debug(__FUNCTION__ . " start");
 
-    $clang = Yii::app()->lang;
-    $action = (isset($_POST['action'])) ? $_POST['action'] : '';
-    
-    $aData = array();
     if (Yii::app()->session['USER_RIGHT_SUPERADMIN'] == 1) {
       $meeting_date = $_POST['meeting_date'];
       $customer_type = $_POST['customer_type'];
@@ -61,44 +56,48 @@ class Facci extends Survey_Common_Action {
         $person = MnoSurveyProcessor::findOrCreatePerson("$new_person_first_name $new_person_last_name", $organziation);
       }
 
-      // Build Person object to send to connec!
-      $mno_person = new MnoSoaPerson();
-      $local_entity = (object) array();
-      $local_entity->id = $person;
-      $local_entity->tasks = array();
+      if(!is_null($organziation) && !is_null($person)) {
+        // Build Person object to send to connec!
+        $mno_person = new MnoSoaPerson();
+        $local_entity = (object) array();
+        $local_entity->id = $person;
+        $local_entity->tasks = array();
 
-      // TODO: Post activities to connec!
-      foreach ($actions as $index => $action_name) {
-        $action_other = $action_others[$index];
-        $action_description = $action_descriptions[$index];
-        $action_assignee = $action_assignees[$index];
-        $action_due_date = $action_due_dates[$index];
+        // TODO: Post activities to connec!
+        foreach ($actions as $index => $action_name) {
+          $action_other = $action_others[$index];
+          $action_description = $action_descriptions[$index];
+          $action_assignee = $action_assignees[$index];
+          $action_due_date = $action_due_dates[$index];
 
-        $task_id = uniqid();
-        $start_date = time();
-        $due_date = strtotime($action_due_date);
-        $assigned_to = array($action_assignee => "ACTIVE");
+          $task_id = uniqid();
+          $start_date = time();
+          $due_date = strtotime($action_due_date);
+          $assigned_to = array($action_assignee => "ACTIVE");
 
-        MnoSoaLogger::debug(__FUNCTION__ . " creating task: action_name=$action_name, task_id=$task_id, start_date=$start_date, due_date=$due_date, assigned_to=$assigned_to");
-        $task = array(
-          "id" => $task_id,
-          "name" => (is_null($action_name) || $action_name == '') ? $action_other : $action_name,
-          "description" => $action_description,
-          "status" => "Not Started",
-          "startDate" => $start_date,
-          "dueDate" => $due_date,
-          "assignedTo" => $assigned_to
-        );
-        $local_entity->tasks[$task_id] = $task;
+          MnoSoaLogger::debug(__FUNCTION__ . " creating task: action_name=$action_name, task_id=$task_id, start_date=$start_date, due_date=$due_date, assigned_to=$assigned_to");
+          $task = array(
+            "id" => $task_id,
+            "name" => (is_null($action_name) || $action_name == '') ? $action_other : $action_name,
+            "description" => $action_description,
+            "status" => "Not Started",
+            "startDate" => $start_date,
+            "dueDate" => $due_date,
+            "assignedTo" => $assigned_to
+          );
+          $local_entity->tasks[$task_id] = $task;
+        }
+
+        $mno_person->send($local_entity);
+
+        Yii::app()->session['flashmessage'] = 'The meeting summary has been saved';
+      } else {
+        Yii::app()->session['flashmessage'] = 'You must specify an Organization and a Person';
       }
-
-      $mno_person->send($local_entity);
-
-      $aViewUrls = 'new_meeting_summary';
     }
 
     MnoSoaLogger::debug(__FUNCTION__ . " end");
 
-    $this->_renderWrappedTemplate('facci', $aViewUrls, $aData);
+    $this->getController()->redirect($this->getController()->createUrl("admin/facci/create"));
   }
 }
