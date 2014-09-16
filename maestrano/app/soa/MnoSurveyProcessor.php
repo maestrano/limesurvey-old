@@ -22,8 +22,6 @@ class MnoSurveyProcessor
           return null;
         }
 
-        sleep(2);
-
         MnoSoaLogger::debug(__FUNCTION__ . " updating notes for person uid " . $mno_person_id);
         $local_entity = (object) array();
         $local_entity->participant_id = $mno_person_id;
