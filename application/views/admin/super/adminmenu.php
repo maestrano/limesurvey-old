@@ -89,7 +89,7 @@
             
             <!-- FACCI Customisation -->
             <img alt="" class="separator" src="/styles/gringegreen/images/separator.gif">
-            <a href="<?php echo $this->createUrl("/admin/facci/create"); ?>">
+            <a href="<?php echo $this->createUrl("/facci/create"); ?>">
               <img src='<?php echo $sImageURL;?>facci.png' alt='<?php $clang->eT("Facci meeting summary page");?>' width='<?php echo $iconsize;?>' height='<?php echo $iconsize;?>'/>
             </a>
 

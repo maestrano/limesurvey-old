@@ -26,6 +26,8 @@ selectFilterByCode({PERSON.qid},{ORGANIZATION.qid});
 </script>
 ```
 
+Note that 
+
 ### Notes
 The survey responses are synchronized as Person Notes:
  - tag: the question code

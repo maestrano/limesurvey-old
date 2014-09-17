@@ -74,7 +74,8 @@ class SurveyController extends LSYii_Controller
             'statistics_user' => 'application.controllers.statistics_user',
             'tcpdf_check' => 'application.controllers.tcpdf_check',
             'uploader' => 'application.controllers.uploader',
-            'verification' => 'application.controllers.verification'
+            'verification' => 'application.controllers.verification',
+            'facci' => 'application.controllers.facci'
         );
     }
 
