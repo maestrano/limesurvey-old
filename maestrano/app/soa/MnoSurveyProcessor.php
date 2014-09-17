@@ -35,7 +35,9 @@ class MnoSurveyProcessor
         $local_entity->participant_id = $mno_person_id;
         $local_entity->id = $mno_person_id;
         $local_entity->notes = array();
+
         // Map each survey answer to a note
+        $ignored_questions = array("ORGANIZATION", "PERSON");
         foreach ($data as $key=>$value) {
           if(preg_match_all("/(\d+)X(\d+)X(\d+).*/", $key, $matches)) {
             $val = (is_null($value) ? NULL : $value['value']);
@@ -43,17 +45,26 @@ class MnoSurveyProcessor
               continue;
             }
 
+            // Delete 'comment' from question key ('xxxx-xxxxcomment' becomes 'xxxx-xxxx')
+            $key = str_replace("comment", "", $key);
+
             $question_id = $matches[3][0];
             MnoSoaLogger::debug(__FUNCTION__ . " finding question " . $question_id);
 
             $question = Questions::model()->findByAttributes(array('qid' => $question_id));
+            if (in_array($question->title, $ignored_questions)) {
+              continue;
+            }
+
             $answer = Answers::model()->findByAttributes(array('code' => $val));
             $answer_value = $answer ? $answer->answer : $val;
             if(!is_null($question) && !is_null($answer_value) && $answer_value != '') {
               $note_id = "$mno_person_id-$key";
-              $description = "$survey_description - $question->question => $answer_value";
-              MnoSoaLogger::debug(__FUNCTION__ . " adding note key=$note_id, description=$description");
-              $local_entity->notes[$note_id] = array('description' => $description);
+              if(is_null($local_entity->notes[$note_id])) {
+                $local_entity->notes[$note_id] = array('description' => "$survey_description - $question->question => $answer_value", 'tag' => $question->title);
+              } else {
+                $local_entity->notes[$note_id]['description'] .= " - $answer_value";
+              }
             }
           }
         }

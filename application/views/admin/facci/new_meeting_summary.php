@@ -135,6 +135,7 @@
               $(wrapper).append('<div style="margin: 5px; padding: 5px; margin-left: 10px; clear: both; border: 1px solid #B0B0B0;"> \
                   <div> \
                     <select name="actions[]" style="width: 200px;"> \
+                      <option value="">Select action type</option> \
                       <option value="Follow up discussion">Follow up discussion</option> \
                       <option value="Send documents">Send documents</option> \
                       <option value="Send proposal">Send proposal</option> \
