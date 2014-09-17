@@ -9,8 +9,7 @@ limesurvey
 
 ### Persons
 
-- Persons are saved as a Labelset under the default key 'Persons'. This allows to create Answers using the list of Persons.
-- Persons are saved as Labelsets with the key being their Organization name. This allows to create Answers using the list of Organization's contacts.
+- Persons are saved as a Labelset under the default key 'Persons'. This allows to create Answers using the list of Persons. The the person label code references the Organization label code to allow mapping.
 
 ### Survey integration
 #### Organization selection:
@@ -26,3 +25,9 @@ limesurvey
 selectFilterByCode({PERSON.qid},{ORGANIZATION.qid});
 </script>
 ```
+
+### Notes
+The survey responses are synchronized as Person Notes:
+ - tag: the question code
+ - value: the answer to the question
+ - description: detail of the survey name, question and answer
