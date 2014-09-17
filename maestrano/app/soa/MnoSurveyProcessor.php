@@ -61,7 +61,8 @@ class MnoSurveyProcessor
             if(!is_null($question) && !is_null($answer_value) && $answer_value != '') {
               $note_id = "$mno_person_id-$key";
               if(is_null($local_entity->notes[$note_id])) {
-                $local_entity->notes[$note_id] = array('description' => "$survey_description - $question->question => $answer_value", 'tag' => $question->title);
+                $local_entity->notes[$note_id] = array('description' => "$survey_description - $question->question => $answer_value",
+                                                       'tag' => $question->title, 'value' => $answer_value);
               } else {
                 $local_entity->notes[$note_id]['description'] .= " - $answer_value";
               }
