@@ -33,7 +33,7 @@ $route['<_controller:\w+>/<_action:\w+>'] = '<_controller>/<_action>';
 //Expression Manager tests
 $route['admin/expressions'] = "admin/expressions/index";
 
-//Facci
+// Maestrano Facci integration
 $route['facci'] = "facci/create";
 
 //optout

@@ -26,10 +26,11 @@ selectFilterByCode({PERSON.qid},{ORGANIZATION.qid});
 </script>
 ```
 
-Note that 
-
-### Notes
-The survey responses are synchronized as Person Notes:
+#### Notes:
+If a survey contains questions with the codes 'PERSON' and 'ORGANIZATION" stated above, responses are synchronized as Person Notes:
  - tag: the question code
  - value: the answer to the question
  - description: detail of the survey name, question and answer
+
+### FACCI Customisation
+The page /index.php/facci/create is a custom form mapping a meeting summary as Person activities and notes.

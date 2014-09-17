@@ -1,27 +1,35 @@
 <?php
 
+/**
+ * Maestrano Facci Customisation
+**/
 class FacciController extends CController {
 
   public function actionCreate() {
-    $aData = array();
-    
-    // Fetch the organizations
-    $orgLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'ORGANIZATIONS'));
-    $organizations = Label::model()->findAllByAttributes(array('lid' => $orgLabelSet->lid));
-    $aData['organizations'] = $organizations;
+    $token = $_GET['token'];
+    if($token != '076823aa27bc') {
+      $this->redirect($this->createUrl("/"));
+    } else {
+      $aData = array();
+      
+      // Fetch the organizations
+      $orgLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'ORGANIZATIONS'));
+      $organizations = Label::model()->findAllByAttributes(array('lid' => $orgLabelSet->lid));
+      $aData['organizations'] = $organizations;
 
-    // Fetch the persons
-    $personLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'PERSONS'));
-    $persons = Label::model()->findAllByAttributes(array('lid' => $personLabelSet->lid));
-    $aData['persons'] = $persons;
+      // Fetch the persons
+      $personLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'PERSONS'));
+      $persons = Label::model()->findAllByAttributes(array('lid' => $personLabelSet->lid));
+      $aData['persons'] = $persons;
 
-    // Fetch the users
-    $users = User::model()->findAllBySql("select * from {{users}} where mno_uid is not null");
-    $aData['users'] = $users;
+      // Fetch the users
+      $users = User::model()->findAllBySql("select * from {{users}} where mno_uid is not null");
+      $aData['users'] = $users;
 
-    $aViewUrls = 'new_meeting_summary';
+      $aViewUrls = 'new_meeting_summary';
 
-    $this->render('/facci/new_meeting_summary',$aData);
+      $this->render('/facci/new_meeting_summary',$aData);
+    }
   }
 
   public function actionSave() {
