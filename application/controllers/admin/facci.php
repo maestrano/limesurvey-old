@@ -16,8 +16,7 @@ class Facci extends Survey_Common_Action {
       $aData['persons'] = $persons;
 
       // Fetch the users
-      $userLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'USERS'));
-      $users = Label::model()->findAllByAttributes(array('lid' => $userLabelSet->lid));
+      $users = User::model()->findAllBySql("select * from {{users}} where mno_uid is not null");
       $aData['users'] = $users;
 
       $aViewUrls = 'new_meeting_summary';

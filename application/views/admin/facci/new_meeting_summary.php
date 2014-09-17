@@ -140,7 +140,7 @@
                     <select name="action_assignees[]" style="width: 200px;"> \
                       <?php
                         foreach ($users as $user) {
-                          echo "<option value=" . $user->mno_uid . ">" . $user->title . "</option>";
+                          echo "<option value=" . $user->mno_uid . ">" . $user->full_name . "</option>";
                         }
                       ?>
                     </select> \

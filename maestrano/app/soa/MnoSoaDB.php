@@ -29,10 +29,6 @@ class MnoSoaDB extends MnoSoaBaseDB {
                     ->query();
         $id = getLastInsertID('{{mno_id_map}}');
         MnoSoaLogger::debug("addIdMapEntry query = ".$query);
-        if (empty($id)) {
-            MnoSoaLogger::debug(__CLASS__ . ' ' . __FUNCTION__ . " mno_id_map creation failed");
-            return false;
-        }
         MnoSoaLogger::debug(__CLASS__ . ' ' . __FUNCTION__ . " end");
         
         return true;

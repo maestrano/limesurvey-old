@@ -70,31 +70,11 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
   }
   
   protected function saveLocalEntity($push_to_maestrano, $status) {
-    if ($status == constant('MnoSoaBaseEntity::STATUS_NEW_ID')) {
-      $this->_local_entity->mno_uid = $this->_id;
-      $this->insertLocalEntity();
-    } else if ($status == constant('MnoSoaBaseEntity::STATUS_EXISTING_ID')) {
-      $this->updateLocalEntity();
-    }
+    $label = $this->saveAsLabel();
   }
   
   public function getLocalEntityIdentifier() {
-    return $this->_local_entity->mno_uid;
-  }
-  
-  public function insertLocalEntity()
-  {
-    $label = $this->saveAsLabel();
-    return getLastInsertID($label->tableName());
-  }
-  
-  public function updateLocalEntity()
-  {
-    $label = Label::model()->findByAttributes(array('mno_uid' => $this->_id));
-    $label->label_name = $this->_local_entity->name;
-    $label->save();
-
-    return true;
+    return (isset($this->_id)) ? $this->_id : $this->_local_entity->mno_uid;
   }
   
   public static function getLocalEntityByLocalIdentifier($local_id)
@@ -118,31 +98,56 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
   }
 
   public function saveAsLabel() {
-        // Save the Organziation as a Label under Labelset 'ORGANIZATIONS'
+    MnoSoaLogger::debug(__FUNCTION__ . " start");
+    // Save the Organziation as a Label under Labelset 'ORGANIZATIONS'
     $orgLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'ORGANIZATIONS'));
-    $count = Label::model()->count('lid = ' . $orgLabelSet->lid);
-    $lbl = new Label;
-    $lbl->lid = $orgLabelSet->lid;
-    $lbl->sortorder = $count;
-    $lbl->code = 'O' . $count;
+    if(is_null($orgLabelSet)) {
+      MnoSoaLogger::error(__FUNCTION__ . " Labelset with mno_uid 'ORGANIZATIONS' is missing");
+      return null;
+    }
+
+    // Find or create label
+    $local_id = $this->getLocalEntityIdentifier();
+    $lbl = Label::model()->findByAttributes(array('mno_uid' => $local_id));
+    MnoSoaLogger::error(__FUNCTION__ . " finding existing Label for mno_uid: $local_id");
+    if(is_null($lbl)) {
+      MnoSoaLogger::debug(__FUNCTION__ . " creating new Label");
+      $count = 1;
+      $label_result = Label::model()->findAll(array('condition'=>'lid=:lid', 'order'=>'sortorder DESC', 'params'=>array(':lid'=>$orgLabelSet->lid)));
+      if(count($label_result) != 0) {
+        $count = ((int) $label_result[0]['sortorder']) + 1;
+      }
+      $lbl = new Label;
+      $lbl->mno_uid = $local_id;
+      $lbl->lid = $orgLabelSet->lid;
+      $lbl->sortorder = $count;
+      $lbl->code = strtoupper(base_convert((string)$count, 10, 36));
+      $lbl->language = 'en';
+    }
     $lbl->title = $this->_local_entity->name;
-    $lbl->language = 'en';
-    $lbl->mno_uid = $this->_local_entity->mno_uid;
     $lbl->save();
 
+    // Add the Organization as a new answer to all 'Organization' questions
     MnoSoaLogger::debug(__FUNCTION__ . " saving organization as a new possible answer");
     $questions = Questions::model()->findAllByAttributes(array('title' => 'ORGANIZATION'));
     foreach ($questions as $question) {
       $qid = $question->attributes['qid'];
-      $answer = new Answers();
-      $answer->qid = $qid;
-      $answer->sortorder = $lbl->sortorder;
-      $answer->code = $lbl->code;
+
+      // Find or create answer
+      $answer = Answers::model()->findByAttributes(array('qid' => $qid, 'code' => $lbl->code));
+      if(is_null($answer)) {
+        $answer = new Answers();
+        $answer->qid = $qid;
+        $answer->sortorder = $lbl->sortorder;
+        $answer->code = $lbl->code;
+        $answer->assessment_value = $lbl->assessment_value;
+        $answer->language = 'en';
+      }
       $answer->answer = $lbl->title;
-      $answer->assessment_value = $lbl->assessment_value;
-      $answer->language = 'en';
       $answer->save();
     }
+
+    MnoSoaLogger::debug(__FUNCTION__ . " end");
 
     return $lbl;
   }

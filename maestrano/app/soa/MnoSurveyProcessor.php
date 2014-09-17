@@ -93,6 +93,7 @@ class MnoSurveyProcessor
           $mno_uid = $mno_organization->send($local_entity);
           $mno_organization->mno_uid = $mno_uid;
           $local_entity->mno_uid = $mno_uid;
+          $local_entity->id = $mno_uid;
 
           MnoSoaLogger::debug(__FUNCTION__ . " created organization: " . $mno_uid);
           
@@ -157,6 +158,7 @@ class MnoSurveyProcessor
           $mno_person->mno_uid = $mno_uid;
           $local_entity->participant_id = $mno_uid;
           $local_entity->mno_uid = $mno_uid;
+          $local_entity->_id = $mno_uid;
 
           MnoSoaLogger::debug(__FUNCTION__ . " created person: " . $mno_uid);
 

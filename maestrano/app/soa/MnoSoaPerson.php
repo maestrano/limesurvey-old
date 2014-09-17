@@ -107,6 +107,7 @@ class MnoSoaPerson extends MnoSoaBasePerson
     }
         
     protected function saveLocalEntity($push_to_maestrano, $status) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start");
         if ($status == constant('MnoSoaBaseEntity::STATUS_NEW_ID')) {
             $this->_local_entity->participant_id = $this->_id;
             $this->_local_entity->mno_uid = $this->_id;
@@ -114,11 +115,12 @@ class MnoSoaPerson extends MnoSoaBasePerson
         } else if ($status == constant('MnoSoaBaseEntity::STATUS_EXISTING_ID')) {
             $this->updateLocalEntity();
         }
+        MnoSoaLogger::debug(__FUNCTION__ . " end");
     }
     
     public function getLocalEntityIdentifier() 
     {
-        return $this->_local_entity->participant_id;
+        return (isset($this->_id)) ? $this->_id : $this->_local_entity->mno_uid;
     }
     
     public function insertLocalEntity()
@@ -129,10 +131,7 @@ class MnoSoaPerson extends MnoSoaBasePerson
 
     public function updateLocalEntity()
     {
-        // Save the Person as a Label under its Organization Labelset
-        $lset = Label::model()->findByAttributes(array('mno_uid' => $this->_id));
-        $lset->title = $this->_local_entity->firstname . ' ' . $this->_local_entity->lastname;
-        $lset->save();
+        $this->saveAsLabel();
 
         // Save in participants table
         $table_prefix = Yii::app()->db->tablePrefix;
@@ -206,23 +205,53 @@ class MnoSoaPerson extends MnoSoaBasePerson
     }
 
     public function saveAsLabel() {
+        MnoSoaLogger::debug(__FUNCTION__ . " start");
+
         // Save the Person as a Label under Labelset 'PERSONS'
         // The Label code is a combination of the person's organization code and a counter
         // (eg: 'O10P4' for Organization n10 and Person n4)
         if(is_null($this->_role) || is_null($this->_role->organization) || is_null($this->_role->organization->id)) {
+          MnoSoaLogger::debug(__FUNCTION__ . " person has no organization, skipping");
           return null;
         }
 
         $orgLabel = Label::model()->findByAttributes(array('mno_uid' => $this->_role->organization->id));
         $pplLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'PERSONS'));
-        $count = Label::model()->count('lid = ' . $pplLabelSet->lid);
-        $lbl = new Label;
-        $lbl->lid = $pplLabelSet->lid;
-        $lbl->sortorder = $count;
-        $lbl->code = $orgLabel->code . 'P' . $count;
+        
+        if(is_null($pplLabelSet)) {
+          MnoSoaLogger::error(__FUNCTION__ . " Labelset with mno_uid 'PERSONS' is missing");
+          return null;
+        }
+
+        if(is_null($orgLabel)) {
+          MnoSoaLogger::error(__FUNCTION__ . " No Label found for Organization " . $this->_role->organization->id);
+          return null;
+        }
+
+        // Find or create label
+        $local_id = $this->getLocalEntityIdentifier();
+        MnoSoaLogger::debug(__FUNCTION__ . " found or create Person Label for mno_uid: " . $local_id);
+        $lbl = Label::model()->findByAttributes(array('mno_uid' => $local_id));
+        if(is_null($lbl)) {
+          MnoSoaLogger::debug(__FUNCTION__ . " creating a new Label");
+          $count = 1;
+          $label_result = Label::model()->findAll(array('condition'=>'lid=:lid', 'order'=>'sortorder DESC', 'params'=>array(':lid'=>$pplLabelSet->lid)));
+          if(count($label_result) != 0) {
+            $count = ((int) $label_result[0]['sortorder']) + 1;
+            MnoSoaLogger::debug(__FUNCTION__ . " current count: " . $count);
+          }
+
+          $lbl = new Label;
+          $lbl->lid = $pplLabelSet->lid;
+          $lbl->mno_uid = $local_id;
+          $lbl->language = 'en';
+          $lbl->sortorder = $count;
+          $lbl->code = $orgLabel->code . base_convert((string)$count, 10, 36);
+        } else {
+          $lbl->code = $orgLabel->code . base_convert((string)$lbl->sortorder, 10, 36);
+        }
+
         $lbl->title = $this->_local_entity->firstname . ' ' . $this->_local_entity->lastname;
-        $lbl->language = 'en';
-        $lbl->mno_uid = $this->_local_entity->mno_uid;
         $lbl->save();
 
         // Save Person as new possible Answer to surveys
@@ -230,15 +259,23 @@ class MnoSoaPerson extends MnoSoaBasePerson
         $questions = Questions::model()->findAllByAttributes(array('title' => 'PERSON'));
         foreach ($questions as $question) {
           $qid = $question->attributes['qid'];
-          $answer = new Answers();
-          $answer->qid = $qid;
-          $answer->sortorder = $lbl->sortorder;
-          $answer->code = $lbl->code;
+
+          // Find or create answer
+          MnoSoaLogger::debug(__FUNCTION__ . " set answer for question=$qid, code:$lbl->code");
+          $answer = Answers::model()->findByAttributes(array('qid' => $qid, 'code' => $lbl->code));
+          if(is_null($answer)) {
+            MnoSoaLogger::debug(__FUNCTION__ . " create a new answer");
+            $answer = new Answers();
+            $answer->qid = $qid;
+            $answer->sortorder = $lbl->sortorder;
+            $answer->code = $lbl->code;
+            $answer->language = $lbl->language;
+          }
           $answer->answer = $lbl->title;
-          $answer->assessment_value = $lbl->assessment_value;
-          $answer->language = 'en';
           $answer->save();
         }
+
+        MnoSoaLogger::debug(__FUNCTION__ . " end");
 
         return $lbl;
     }
