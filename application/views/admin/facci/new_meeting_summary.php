@@ -5,7 +5,7 @@
 
       <li>
         <label for='meeting_date'><?php $clang->eT("Date of the Meeting"); ?></label>
-        <input class='popupdate' type='text' size='10' id='meeting_date' name='meeting_date' required="required" />
+        <input class='popupdate' type='text' size='10' id='meeting_date' name='meeting_date' required="required" placeholder="Meeting date" />
         <font color='red' face='verdana' size='1'> <?php $clang->eT("Required"); ?></font>
       </li>
 
@@ -20,7 +20,7 @@
 
       <li>
         <label for='organziation'><?php $clang->eT("Name of the organisation you met"); ?></label>
-        <select name='organziation' id='organziation'>
+        <select name='organziation' id='organziation' style="width: 255px;">
           <option value="">Select Organization</option>
           <?php
             foreach ($organizations as $organization) {
@@ -31,13 +31,13 @@
       </li>
       <li>
         <label for='new_organziation'><?php $clang->eT("Or create a new Organisation"); ?></label>
-        <input type='text' id='new_organziation' name='new_organziation' />
+        <input type='text' id='new_organziation' name='new_organziation' size="40" placeholder="Organisation name" />
         <br/><br/>
       </li>
 
       <li>
         <label for='person'><?php $clang->eT("Who did you meet in this organisation?"); ?></label>
-        <select name='person' id='person'>
+        <select name='person' id='person' style="width: 255px;">
           <option value="">Select Person</option>
         </select>
       </li>
@@ -51,9 +51,13 @@
     </ul>
   </div>
 
-  <div class='header ui-widget-header'><?php $clang->eT("Discussion subject(s) / Topic(s)"); ?></div>
+  <div class='header ui-widget-header'><?php $clang->eT("Discussion subject(s) / topic(s)"); ?></div>
   <div id="section2" class="ui-tabs-panel ui-widget-content ui-corner-bottom">
     <ul>
+      <li>
+        <label for='description'><?php $clang->eT("Description"); ?></label>
+        <textarea id='description' name='description' style="height: 77px; width: 727px;"></textarea>
+      </li>
       <li>
         <label for='topic1'><?php $clang->eT("Subject 1"); ?></label>
         <input type='text' size="120" id='topic1' name='topic1' />

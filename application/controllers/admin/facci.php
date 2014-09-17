@@ -33,13 +33,11 @@ class Facci extends Survey_Common_Action {
       $customer_type = $_POST['customer_type'];
       $organziation = $_POST['organziation'];
       $new_organziation = $_POST['new_organziation'];
-      $person = $_POST['person'];
+      $person_mno_uid = $_POST['person'];
       $new_person_title = $_POST['new_person_title'];
       $new_person_first_name = $_POST['new_person_first_name'];
       $new_person_last_name = $_POST['new_person_last_name'];
-      $topic1 = $_POST['topic1'];
-      $topic2 = $_POST['topic2'];
-      $topic3 = $_POST['topic3'];
+      $description = $_POST['description'];
       $actions = $_POST['actions'];
       $action_descriptions = $_POST['action_descriptions'];
       $action_assignees = $_POST['action_assignees'];
@@ -51,34 +49,45 @@ class Facci extends Survey_Common_Action {
         $organziation = MnoSurveyProcessor::findOrCreateOrganization($new_organziation);
       }
 
-      if (is_null($person) || $person == '') {
-        $person = MnoSurveyProcessor::findOrCreatePerson("$new_person_first_name $new_person_last_name", $organziation);
+      if (is_null($person_mno_uid) || $person_mno_uid == '') {
+        $person_mno_uid = MnoSurveyProcessor::findOrCreatePerson("$new_person_first_name $new_person_last_name", $organziation);
       }
 
-      if(!is_null($organziation) && !is_null($person)) {
-        // Build Person object to send to connec!
+      if(!is_null($organziation) && !is_null($person_mno_uid)) {
+        // Build Person object to be sent
         $mno_person = new MnoSoaPerson();
         $local_entity = (object) array();
-        $local_entity->id = $person;
+        $local_entity->id = $person_mno_uid;
+        $local_entity->notes = array();
         $local_entity->tasks = array();
 
-        // TODO: Post activities to connec!
+        // Map notes to Person
+        for ($i = 1; $i <= 10; $i++) {
+          $topic = $_POST["topic$i"];
+          if(!is_null($topic) && $topic!='') {
+            $note_id = uniqid();
+            $local_entity->notes[$note_id] = array('description' => $topic);
+          }
+        }
+
+        // Map activities to Person
         foreach ($actions as $index => $action_name) {
           $action_other = $action_others[$index];
           $action_description = $action_descriptions[$index];
           $action_assignee = $action_assignees[$index];
           $action_due_date = $action_due_dates[$index];
+          $action_name_combined = ((is_null($action_name) || $action_name == '') ? $action_other : $action_name) . " - " . $action_description;
 
           $task_id = uniqid();
           $start_date = time();
           $due_date = strtotime($action_due_date);
           $assigned_to = array($action_assignee => "ACTIVE");
 
-          MnoSoaLogger::debug(__FUNCTION__ . " creating task: action_name=$action_name, task_id=$task_id, start_date=$start_date, due_date=$due_date, assigned_to=$assigned_to");
+          MnoSoaLogger::debug(__FUNCTION__ . " creating task: name=$action_name_combined, id=$task_id, start_date=$start_date, due_date=$due_date, assigned_to=$assigned_to");
           $task = array(
             "id" => $task_id,
-            "name" => (is_null($action_name) || $action_name == '') ? $action_other : $action_name,
-            "description" => $action_description,
+            "name" => $action_name_combined,
+            "description" => $description,
             "status" => "Not Started",
             "startDate" => $start_date,
             "dueDate" => $due_date,

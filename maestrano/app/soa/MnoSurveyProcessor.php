@@ -1,7 +1,8 @@
 <?php
 
 /**
- * Survey processing
+ * Survey processing.
+ * Extract relevant data and send to ESB.
  */
 class MnoSurveyProcessor
 {
@@ -22,11 +23,19 @@ class MnoSurveyProcessor
           return null;
         }
 
+        // Find survey description
+        $survey_settings = Surveys_languagesettings::model()->findByAttributes(array('surveyls_survey_id' => $survey_id, 'surveyls_language' => 'en'));
+        $survey_description = '';
+        if(!is_null($survey_settings)) {
+          $survey_description = $survey_settings->surveyls_title;
+        }
+
         MnoSoaLogger::debug(__FUNCTION__ . " updating notes for person uid " . $mno_person_id);
         $local_entity = (object) array();
         $local_entity->participant_id = $mno_person_id;
         $local_entity->id = $mno_person_id;
         $local_entity->notes = array();
+        // Map each survey answer to a note
         foreach ($data as $key=>$value) {
           if(preg_match_all("/(\d+)X(\d+)X(\d+).*/", $key, $matches)) {
             $val = (is_null($value) ? NULL : $value['value']);
@@ -42,8 +51,9 @@ class MnoSurveyProcessor
             $answer_value = $answer ? $answer->answer : $val;
             if(!is_null($question) && !is_null($answer_value) && $answer_value != '') {
               $note_id = "$mno_person_id-$key";
-              MnoSoaLogger::debug(__FUNCTION__ . " adding note key=$note_id - " . $question->question . " => " . $answer_value);
-              $local_entity->notes[$note_id] = array('description' => $question->question . " => " . $answer_value);
+              $description = "$survey_description - $question->question => $answer_value";
+              MnoSoaLogger::debug(__FUNCTION__ . " adding note key=$note_id, description=$description");
+              $local_entity->notes[$note_id] = array('description' => $description);
             }
           }
         }
