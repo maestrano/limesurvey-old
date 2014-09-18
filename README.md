@@ -1,5 +1,5 @@
-limesurvey
-==========
+limesurvey Maestrano
+====================
 
 ## Maestrano integration
 
@@ -34,3 +34,11 @@ If a survey contains questions with the codes 'PERSON' and 'ORGANIZATION" stated
 
 ### FACCI Customisation
 The page /index.php/facci/create is a custom form mapping a meeting summary as Person activities and notes.
+
+
+### For developers
+#### Create a patch
+This command creates a diff patch from 2 commits ignoring Maestrano configuration
+```
+$ git diff commit1 commit2 | filterdiff -p 1 -x "maestrano/app/config/*" > limesurvey.diff
+```

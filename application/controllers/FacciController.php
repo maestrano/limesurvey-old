@@ -111,7 +111,7 @@ class FacciController extends CController {
 
     MnoSoaLogger::debug(__FUNCTION__ . " end");
 
-    $this->redirect($this->createUrl("facci/create"));
+    $this->redirect($this->createUrl("/facci/create", array('token' => '076823aa27bc')));
   }
 
 }
