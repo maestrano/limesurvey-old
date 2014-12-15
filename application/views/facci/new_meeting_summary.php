@@ -134,7 +134,8 @@
       var organizations = {
         <?php
           foreach ($organizations as $organization) {
-            echo "'$organization->mno_uid': {name: '$organization->title', code: '$organization->code'},";
+            $organization_name = str_replace(array("\r", "\n"), "", $organization->title);
+            echo "\"$organization->mno_uid\": {\"name\": \"$organization_name\", \"code\": \"$organization->code\"},";
           }
         ?>
       };
@@ -142,21 +143,26 @@
       var persons = {
         <?php
           foreach ($persons as $person) {
-            echo "'$person->code': {name: '$person->title', mnoid: '$person->mno_uid'},";
+            $person_name = str_replace(array("\r", "\n"), "", $person->title); 
+            echo "\"$person->code\": {\"name\": \"$person_name\", \"mnoid\": \"$person->mno_uid\"},";
           }
         ?>
       };
 
       function updatePersonsList() {
-        var selectedOrg = $("#organziation option:selected").val();
-        var selectedOrganizationCode = organizations[selectedOrg]['code'];
         $('#person').empty();
         $('#person').append($('<option>').text('Select Person').attr('value', ''));
-        $.each(persons, function(code, value) {
-          if(code.indexOf(selectedOrganizationCode) == 0) {
-            $('#person').append($('<option>').text(value['name']).attr('value', value['mnoid']));
-          }
-        });
+
+        var selectedOrg = $("#organziation option:selected").val();
+        if(selectedOrg != '') {
+          var selectedOrganizationCode = organizations[selectedOrg]['code'];
+          
+          $.each(persons, function(code, value) {
+            if(code.indexOf(selectedOrganizationCode) == 0) {
+              $('#person').append($('<option>').text(value['name']).attr('value', value['mnoid']));
+            }
+          });
+        }
       }
 
       $(document).ready(function() {
