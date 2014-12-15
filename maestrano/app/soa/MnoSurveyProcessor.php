@@ -128,7 +128,7 @@ class MnoSurveyProcessor
     }
 
     private static function extractSelectedPerson($survey_id, $data, $mno_organization_id) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start for person: $mno_organization_id");
+        MnoSoaLogger::debug(__FUNCTION__ . " start for mno_organization_id: $mno_organization_id");
         
         // Find if a PERSON question exists in the survey
         $personQuestion = Questions::model()->findByAttributes(array('title' => 'PERSON', 'sid' => $survey_id));
@@ -144,8 +144,8 @@ class MnoSurveyProcessor
     }
 
     public static function findOrCreatePerson($selectedPerson, $mno_organization_id) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start for person: $mno_organization_id, person: $selectedPerson");
-        if(is_null($selectedPerson) || $selectedPerson == '') {
+        MnoSoaLogger::debug(__FUNCTION__ . " start for mno_organization_id: $mno_organization_id, person: $selectedPerson");
+        if(is_null($selectedPerson) || trim($selectedPerson) == false) {
           MnoSoaLogger::debug(__FUNCTION__ . " user did not specify a person, skipping.");
           return null;
         }

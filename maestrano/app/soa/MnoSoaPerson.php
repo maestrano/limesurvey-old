@@ -201,7 +201,7 @@ class MnoSoaPerson extends MnoSoaBasePerson
                     ->bindValue(":blacklisted", $this->_local_entity->blacklisted)
                     ->bindValue(":owner_uid", $this->_local_entity->owner_uid)
                     ->query();
-        return getLastInsertID('{{participants}}');
+        return $this->_local_entity->participant_id;
     }
 
     public function saveAsLabel() {

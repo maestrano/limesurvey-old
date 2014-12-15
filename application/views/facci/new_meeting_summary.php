@@ -20,6 +20,21 @@
     <link rel="icon" href="<?php echo $baseurl;?>styles/favicon.ico" type="image/x-icon" />
   </head>
   <body>
+    <?php if(isset($flashmessage)) { ?>
+        <div id="flashmessage" style="display:none;">
+            <div id="themeroller" class="ui-state-highlight ui-corner-all">
+                <!-- close link -->
+                <a class="ui-notify-close" href="#">
+                    <span class="ui-icon ui-icon-close" style="float:right">&nbsp;</span>
+                </a>
+                <!-- alert icon -->
+                <span style="float:left; margin:2px 5px 0 0;" class="ui-icon ui-icon-info">&nbsp;</span>
+                <p><?php echo $flashmessage; ?></p><br>
+            </div>
+            <!-- other templates here, maybe.. -->
+        </div>
+    <?php } ?>
+
     <?php echo CHtml::form(array("facci/save"), 'post', array('class'=>'form30', 'id'=>'facciform')); ?>
       <div class='header ui-widget-header'>Meeting with customers and prospects</div>
       <div id="section1" class="ui-tabs-panel ui-widget-content ui-corner-bottom">
@@ -127,7 +142,7 @@
       var persons = {
         <?php
           foreach ($persons as $person) {
-            echo "$person->code: {name: '$person->title', mnoid: '$person->mno_uid'},";
+            echo "'$person->code': {name: '$person->title', mnoid: '$person->mno_uid'},";
           }
         ?>
       };

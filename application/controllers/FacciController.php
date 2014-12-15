@@ -26,7 +26,11 @@ class FacciController extends CController {
       $users = User::model()->findAllBySql("select * from {{users}} where mno_uid is not null");
       $aData['users'] = $users;
 
-      $aViewUrls = 'new_meeting_summary';
+      // Prepare flashmessage
+      if(!empty(Yii::app()->session['flashmessage']) && Yii::app()->session['flashmessage'] != '') {
+        $aData['flashmessage'] = Yii::app()->session['flashmessage'];
+        unset(Yii::app()->session['flashmessage']);
+      }
 
       $this->render('/facci/new_meeting_summary',$aData);
     }
@@ -58,7 +62,7 @@ class FacciController extends CController {
     if (is_null($person_mno_uid) || $person_mno_uid == '') {
       $person_mno_uid = MnoSurveyProcessor::findOrCreatePerson("$new_person_first_name $new_person_last_name", $organziation);
     }
-
+MnoSoaLogger::debug("ORGANIZATION: " . json_encode($organziation) . " - PERSON: " . json_encode($person_mno_uid));
     if(!is_null($organziation) && !is_null($person_mno_uid)) {
       // Build Person object to be sent
       $mno_person = new MnoSoaPerson();
