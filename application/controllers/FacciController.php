@@ -14,12 +14,12 @@ class FacciController extends CController {
       
       // Fetch the organizations
       $orgLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'ORGANIZATIONS'));
-      $organizations = Label::model()->findAllByAttributes(array('lid' => $orgLabelSet->lid));
+      $organizations = Label::model()->findAll(array('order' => 'title asc', 'condition' => "lid=$orgLabelSet->lid"));
       $aData['organizations'] = $organizations;
 
       // Fetch the persons
       $personLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'PERSONS'));
-      $persons = Label::model()->findAllByAttributes(array('lid' => $personLabelSet->lid));
+      $persons = Label::model()->findAll(array('order' => 'title asc', 'condition' => "lid=$personLabelSet->lid"));
       $aData['persons'] = $persons;
 
       // Fetch the users

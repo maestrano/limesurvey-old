@@ -112,16 +112,17 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
     MnoSoaLogger::error(__FUNCTION__ . " finding existing Label for mno_uid: $local_id");
     if(is_null($lbl)) {
       MnoSoaLogger::debug(__FUNCTION__ . " creating new Label");
-      $count = 1;
+      $next_index = 1;
       $label_result = Label::model()->findAll(array('condition'=>'lid=:lid', 'order'=>'sortorder DESC', 'params'=>array(':lid'=>$orgLabelSet->lid)));
       if(count($label_result) != 0) {
-        $count = ((int) $label_result[0]['sortorder']) + 1;
+        $next_index = ((int) $label_result[0]['sortorder']) + 1;
       }
       $lbl = new Label;
       $lbl->mno_uid = $local_id;
       $lbl->lid = $orgLabelSet->lid;
-      $lbl->sortorder = $count;
-      $lbl->code = strtoupper(base_convert((string)$count, 10, 36));
+      $lbl->sortorder = $next_index;
+      # Convert index to hexadecimal code used to map people to this organization in Labels
+      $lbl->code = strtoupper(base_convert((string)($next_index + 360), 10, 36));
       $lbl->language = 'en';
     }
     $lbl->title = $this->_local_entity->name;

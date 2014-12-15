@@ -234,21 +234,22 @@ class MnoSoaPerson extends MnoSoaBasePerson
         $lbl = Label::model()->findByAttributes(array('mno_uid' => $local_id));
         if(is_null($lbl)) {
           MnoSoaLogger::debug(__FUNCTION__ . " creating a new Label");
-          $count = 1;
+          $next_index = 1;
           $label_result = Label::model()->findAll(array('condition'=>'lid=:lid', 'order'=>'sortorder DESC', 'params'=>array(':lid'=>$pplLabelSet->lid)));
           if(count($label_result) != 0) {
-            $count = ((int) $label_result[0]['sortorder']) + 1;
-            MnoSoaLogger::debug(__FUNCTION__ . " current count: " . $count);
+            $next_index = ((int) $label_result[0]['sortorder']) + 1;
+            MnoSoaLogger::debug(__FUNCTION__ . " current count: " . $next_index);
           }
 
           $lbl = new Label;
           $lbl->lid = $pplLabelSet->lid;
           $lbl->mno_uid = $local_id;
           $lbl->language = 'en';
-          $lbl->sortorder = $count;
-          $lbl->code = $orgLabel->code . base_convert((string)$count, 10, 36);
+          $lbl->sortorder = $next_index;
+          # Code starts with the Organization code so we can filter people per organization
+          $lbl->code = $orgLabel->code . strtoupper(base_convert((string)($next_index + 360), 10, 36));
         } else {
-          $lbl->code = $orgLabel->code . base_convert((string)$lbl->sortorder, 10, 36);
+          $lbl->code = $orgLabel->code . strtoupper(base_convert((string)($lbl->sortorder + 360), 10, 36));
         }
 
         $lbl->title = $this->_local_entity->firstname . ' ' . $this->_local_entity->lastname;
