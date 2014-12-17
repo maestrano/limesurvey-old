@@ -10,18 +10,20 @@ class MnoSurveyProcessor
         MnoSoaLogger::debug(__FUNCTION__ . " start");
 
         // Find or Create an Organization based on user selection
-        $mno_organization_id = MnoSurveyProcessor::extractSelectedOrganization($survey_id, $data);
-        if(is_null($mno_organization_id)) {
+        $mno_organization = MnoSurveyProcessor::extractSelectedOrganization($survey_id, $data);
+        if(is_null($mno_organization)) {
           MnoSoaLogger::debug(__FUNCTION__ . " end - Organization not created");
           return null;
         }
+        $mno_organization_id = $mno_organization->mno_uid;
 
         // Find or Create a Person based on user selection
-        $mno_person_id = MnoSurveyProcessor::extractSelectedPerson($survey_id, $data, $mno_organization_id);
-        if(is_null($mno_person_id)) {
+        $mno_person = MnoSurveyProcessor::extractSelectedPerson($survey_id, $data, $mno_organization);
+        if(is_null($mno_person)) {
           MnoSoaLogger::debug(__FUNCTION__ . " end - Person not created");
           return null;
         }
+        $mno_person_id = $mno_person->participant_id;
 
         // Find survey description
         $survey_settings = Surveys_languagesettings::model()->findByAttributes(array('surveyls_survey_id' => $survey_id, 'surveyls_language' => 'en'));
@@ -70,6 +72,7 @@ class MnoSurveyProcessor
           }
         }
 
+        sleep(1);
         $mno_person = new MnoSoaPerson();
         $mno_person->send($local_entity);
  
@@ -105,7 +108,7 @@ class MnoSurveyProcessor
           MnoSoaLogger::debug(__FUNCTION__ . " fetching organization with mno_uid: " . $label->mno_uid);
           $mno_organization = MnoSoaOrganization::getLocalEntityByLocalIdentifier($label->mno_uid);
           MnoSoaLogger::debug(__FUNCTION__ . " end - returning: " . $mno_organization->mno_uid);
-          return $mno_organization->mno_uid;
+          return $mno_organization;
         }
         else {
           MnoSoaLogger::debug(__FUNCTION__ . " create a new organization: " . $selectedOrganization);
@@ -123,12 +126,12 @@ class MnoSurveyProcessor
           $newlabel = $mno_organization->saveAsLabel();
 
           MnoSoaLogger::debug(__FUNCTION__ . " end - created new Organization");
-          return $mno_uid;
+          return $mno_organization;
         }
     }
 
-    private static function extractSelectedPerson($survey_id, $data, $mno_organization_id) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start for mno_organization_id: $mno_organization_id");
+    private static function extractSelectedPerson($survey_id, $data, $mno_organization) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start for mno_organization: " . json_encode($mno_organization));
         
         // Find if a PERSON question exists in the survey
         $personQuestion = Questions::model()->findByAttributes(array('title' => 'PERSON', 'sid' => $survey_id));
@@ -140,11 +143,11 @@ class MnoSurveyProcessor
         
         // Find selected Organization or create one
         $selectedPerson = MnoSurveyProcessor::getResponse($data, $personQuestion->qid);
-        return MnoSurveyProcessor::findOrCreatePerson($selectedPerson, $mno_organization_id);
+        return MnoSurveyProcessor::findOrCreatePerson($selectedPerson, $mno_organization);
     }
 
-    public static function findOrCreatePerson($selectedPerson, $mno_organization_id) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start for mno_organization_id: $mno_organization_id, person: $selectedPerson");
+    public static function findOrCreatePerson($selectedPerson, $mno_organization) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start");
         if(is_null($selectedPerson) || trim($selectedPerson) == false) {
           MnoSoaLogger::debug(__FUNCTION__ . " user did not specify a person, skipping.");
           return null;
@@ -156,7 +159,7 @@ class MnoSurveyProcessor
           MnoSoaLogger::debug(__FUNCTION__ . " fetching person with mno_uid: " . $label->mno_uid);
           $mno_person = MnoSoaPerson::getLocalEntityByLocalIdentifier($label->mno_uid);
           MnoSoaLogger::debug(__FUNCTION__ . " end - returning: " . $mno_person->participant_id);
-          return $mno_person->participant_id;
+          return $mno_person;
         }
         else {
           MnoSoaLogger::debug(__FUNCTION__ . " creating a new person: " . $selectedPerson);
@@ -172,11 +175,13 @@ class MnoSurveyProcessor
             $local_entity->lastname = $selectedPerson;
           }
           
-          $local_entity->organization = $mno_organization_id;
+          $local_entity->organization = $mno_organization->mno_uid;
           $local_entity->blacklisted = 'N';
           $local_entity->language = 'en';
           $local_entity->owner_uid = 1;
+
           $mno_uid = $mno_person->send($local_entity);
+          $mno_person->participant_id = $mno_uid;
           $mno_person->mno_uid = $mno_uid;
           $local_entity->participant_id = $mno_uid;
           $local_entity->mno_uid = $mno_uid;
@@ -185,10 +190,9 @@ class MnoSurveyProcessor
           MnoSoaLogger::debug(__FUNCTION__ . " created person: " . $mno_uid);
 
           // Save Person as a new Label
-          $newlabel = $mno_person->saveAsLabel();
-          $mno_person->saveAsParticipant();
+          $mno_person->insertLocalEntity();
 
-          return $mno_uid;
+          return $mno_person;
         }
     }
 

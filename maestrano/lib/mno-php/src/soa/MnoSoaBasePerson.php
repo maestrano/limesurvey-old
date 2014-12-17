@@ -270,7 +270,7 @@ class MnoSoaBasePerson extends MnoSoaBaseEntity
         if ($this->_entity != null) { $msg['person']->entity = $this->_entity; }
         if ($this->_role != null) { $msg['person']->role = $this->_role; }
 	
-        MnoSoaLogger::debug(__FUNCTION__ . " after creating message array");
+        MnoSoaLogger::debug(__FUNCTION__ . " after creating message array " . json_encode($msg));
         
         return $msg['person'];
     }

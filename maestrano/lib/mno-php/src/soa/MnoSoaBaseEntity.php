@@ -159,7 +159,6 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
         $message = $this->build();
         $message = json_encode($message);
         $mno_had_no_id = empty($this->_id);
-        
         if ($mno_had_no_id) {
             MnoSoaLogger::debug(__FUNCTION__ . " $this->_id = ".$this->_id);
             $response = $this->callMaestrano($this->_create_http_operation, $this->_create_rest_entity_name, $message);
@@ -238,7 +237,7 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
       curl_setopt($curl, CURLOPT_HEADER, false);
       curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
       curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-type: application/json"));
-      curl_setopt($curl, CURLOPT_TIMEOUT, '60');
+      curl_setopt($curl, CURLOPT_TIMEOUT, '600');
       
       MnoSoaLogger::debug(__FUNCTION__ . " before switch");
       
