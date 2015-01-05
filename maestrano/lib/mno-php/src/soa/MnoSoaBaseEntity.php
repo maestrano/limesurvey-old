@@ -160,9 +160,10 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
         $message = json_encode($message);
         $mno_had_no_id = empty($this->_id);
         if ($mno_had_no_id) {
-            MnoSoaLogger::debug(__FUNCTION__ . " $this->_id = ".$this->_id);
+            MnoSoaLogger::debug(__FUNCTION__ . " create new entity against url " . $this->_create_rest_entity_name);
             $response = $this->callMaestrano($this->_create_http_operation, $this->_create_rest_entity_name, $message);
         } else {
+            MnoSoaLogger::debug(__FUNCTION__ . " update entity against url " . $this->_update_rest_entity_name . '/' . $this->_id);
             $response = $this->callMaestrano($this->_update_http_operation, $this->_update_rest_entity_name . '/' . $this->_id, $message);
         }
         

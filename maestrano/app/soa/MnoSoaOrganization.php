@@ -77,16 +77,23 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
     return (isset($this->_id)) ? $this->_id : $this->_local_entity->mno_uid;
   }
   
-  public static function getLocalEntityByLocalIdentifier($local_id)
-  {
+  public static function getLocalEntityByLocalIdentifier($local_id) {
+    MnoSoaLogger::debug(__FUNCTION__ . " find Organization Label by mno_uid $local_id");
+
     $table_prefix = Yii::app()->db->tablePrefix;
     $query = "  SELECT mno_uid, code, title, language, sortorder
-    FROM ".$table_prefix."labels
-    WHERE mno_uid=:mno_uid";        
-    $result=Yii::app()->db->createCommand($query)
-    ->bindValue(":mno_uid", $local_id)
-    ->queryRow();
-    if (count($result) == 0) { return null; }
+                FROM ".$table_prefix."labels
+                WHERE mno_uid=:mno_uid";        
+    $result = Yii::app()->db->createCommand($query)
+      ->bindValue(":mno_uid", $local_id)
+      ->queryRow();
+    
+    if (count($result) == 0) {
+      MnoSoaLogger::debug(__FUNCTION__ . " no matching Label found");
+      return null;
+    }
+
+    MnoSoaLogger::debug(__FUNCTION__ . " returning " . json_encode($result));
     return (object) $result;
   }
   

@@ -10,15 +10,15 @@ class MnoSurveyProcessor
         MnoSoaLogger::debug(__FUNCTION__ . " start");
 
         // Find or Create an Organization based on user selection
-        $mno_organization = MnoSurveyProcessor::extractSelectedOrganization($survey_id, $data);
-        if(is_null($mno_organization)) {
+        $organization_label = MnoSurveyProcessor::extractSelectedOrganization($survey_id, $data);
+        if(is_null($organization_label)) {
           MnoSoaLogger::debug(__FUNCTION__ . " end - Organization not created");
           return null;
         }
-        $mno_organization_id = $mno_organization->mno_uid;
+        $mno_organization_id = $organization_label->mno_uid;
 
         // Find or Create a Person based on user selection
-        $mno_person = MnoSurveyProcessor::extractSelectedPerson($survey_id, $data, $mno_organization);
+        $mno_person = MnoSurveyProcessor::extractSelectedPerson($survey_id, $data, $organization_label);
         if(is_null($mno_person)) {
           MnoSoaLogger::debug(__FUNCTION__ . " end - Person not created");
           return null;
@@ -62,17 +62,18 @@ class MnoSurveyProcessor
             $answer_value = $answer ? $answer->answer : $val;
             if(!is_null($question) && !is_null($answer_value) && $answer_value != '') {
               $note_id = "$mno_person_id-$key";
+              // Create a new Note section or append comment to value
               if(is_null($local_entity->notes[$note_id])) {
                 $local_entity->notes[$note_id] = array('description' => "$survey_description - $question->question => $answer_value",
                                                        'tag' => $question->title, 'value' => $answer_value);
               } else {
+                $local_entity->notes[$note_id]['value'] .= " - $answer_value";
                 $local_entity->notes[$note_id]['description'] .= " - $answer_value";
               }
             }
           }
         }
 
-        sleep(1);
         $mno_person = new MnoSoaPerson();
         $mno_person->send($local_entity);
  
@@ -106,9 +107,7 @@ class MnoSurveyProcessor
         $label = Label::model()->findByAttributes(array('code' => $selectedOrganization));
         if(isset($label)) {
           MnoSoaLogger::debug(__FUNCTION__ . " fetching organization with mno_uid: " . $label->mno_uid);
-          $mno_organization = MnoSoaOrganization::getLocalEntityByLocalIdentifier($label->mno_uid);
-          MnoSoaLogger::debug(__FUNCTION__ . " end - returning: " . $mno_organization->mno_uid);
-          return $mno_organization;
+          $organization_label = MnoSoaOrganization::getLocalEntityByLocalIdentifier($label->mno_uid);
         }
         else {
           MnoSoaLogger::debug(__FUNCTION__ . " create a new organization: " . $selectedOrganization);
@@ -124,14 +123,16 @@ class MnoSurveyProcessor
           
           // Save Organization as a new Label
           $newlabel = $mno_organization->saveAsLabel();
-
-          MnoSoaLogger::debug(__FUNCTION__ . " end - created new Organization");
-          return $mno_organization;
+          $organization_label = MnoSoaOrganization::getLocalEntityByLocalIdentifier($mno_uid);
         }
+
+        MnoSoaLogger::debug(__FUNCTION__ . " end - created new Organization " . json_encode($mno_organization));
+
+        return $organization_label;
     }
 
-    private static function extractSelectedPerson($survey_id, $data, $mno_organization) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start for mno_organization: " . json_encode($mno_organization));
+    private static function extractSelectedPerson($survey_id, $data, $organization_label) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start for organization_label: " . json_encode($organization_label));
         
         // Find if a PERSON question exists in the survey
         $personQuestion = Questions::model()->findByAttributes(array('title' => 'PERSON', 'sid' => $survey_id));
@@ -143,11 +144,12 @@ class MnoSurveyProcessor
         
         // Find selected Organization or create one
         $selectedPerson = MnoSurveyProcessor::getResponse($data, $personQuestion->qid);
-        return MnoSurveyProcessor::findOrCreatePerson($selectedPerson, $mno_organization);
+        MnoSoaLogger::debug(__FUNCTION__ . " selected person response: " . $selectedPerson);
+        return MnoSurveyProcessor::findOrCreatePerson($selectedPerson, $organization_label);
     }
 
-    public static function findOrCreatePerson($selectedPerson, $mno_organization) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start");
+    public static function findOrCreatePerson($selectedPerson, $organization_label) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start selectedPerson: $selectedPerson, organization_label: " . json_encode($organization_label));
         if(is_null($selectedPerson) || trim($selectedPerson) == false) {
           MnoSoaLogger::debug(__FUNCTION__ . " user did not specify a person, skipping.");
           return null;
@@ -157,9 +159,7 @@ class MnoSurveyProcessor
         $label = Label::model()->findByAttributes(array('code' => $selectedPerson));
         if(isset($label)) {
           MnoSoaLogger::debug(__FUNCTION__ . " fetching person with mno_uid: " . $label->mno_uid);
-          $mno_person = MnoSoaPerson::getLocalEntityByLocalIdentifier($label->mno_uid);
-          MnoSoaLogger::debug(__FUNCTION__ . " end - returning: " . $mno_person->participant_id);
-          return $mno_person;
+          $person_label = MnoSoaPerson::getLocalEntityByLocalIdentifier($label->mno_uid);
         }
         else {
           MnoSoaLogger::debug(__FUNCTION__ . " creating a new person: " . $selectedPerson);
@@ -175,7 +175,7 @@ class MnoSurveyProcessor
             $local_entity->lastname = $selectedPerson;
           }
           
-          $local_entity->organization = $mno_organization->mno_uid;
+          $local_entity->organization = $organization_label->mno_uid;
           $local_entity->blacklisted = 'N';
           $local_entity->language = 'en';
           $local_entity->owner_uid = 1;
@@ -191,9 +191,12 @@ class MnoSurveyProcessor
 
           // Save Person as a new Label
           $mno_person->insertLocalEntity();
-
-          return $mno_person;
+          $person_label = MnoSoaPerson::getLocalEntityByLocalIdentifier($mno_uid);
         }
+
+        MnoSoaLogger::debug(__FUNCTION__ . " end - returning: " . json_encode($mno_person));
+
+        return $person_label;
     }
 
     private static function getResponse($data, $questionId) {
@@ -202,15 +205,18 @@ class MnoSurveyProcessor
         // Return the selected response or alternatively try to find a 'comment' response
         $response = null;
         foreach ($data as $key=>$value) {
-          MnoSoaLogger::debug(__FUNCTION__ . " key " . $key);
+          MnoSoaLogger::debug(__FUNCTION__ . " survey question key " . $key);
+
+          // Survey answer key has format: [SURVEY_ID]X[QUESTION_GROUP]X[QUESTION_ID] (eg: 397449X1X7)
           if(preg_match_all("/^(\d+)X(\d+)X(\d+)$/", $key, $matches)) {
-            MnoSoaLogger::debug(__FUNCTION__ . " comp " . $matches[3][0] . " and " . $questionId);
+            MnoSoaLogger::debug(__FUNCTION__ . " comparing " . $matches[3][0] . " and " . $questionId);
             if($matches[3][0] == strval($questionId)) {
               $response = $value['value'];
               MnoSoaLogger::debug(__FUNCTION__ . " found response: " . $response);
             }
           }
 
+          // Survey answer comment key has format: [SURVEY_ID]X[QUESTION_GROUP]X[QUESTION_ID]comment (eg: 397449X1X7comment)
           if(preg_match_all("/^(\d+)X(\d+)X(\d+)comment$/", $key, $matches)) {
             if($matches[3][0] == strval($questionId)) {
               if(is_null($response) || $response == '') {

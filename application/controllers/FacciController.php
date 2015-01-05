@@ -41,8 +41,8 @@ class FacciController extends CController {
 
     $meeting_date = $_POST['meeting_date'];
     $customer_type = $_POST['customer_type'];
-    $organziation = $_POST['organziation'];
-    $new_organziation = $_POST['new_organziation'];
+    $organization_mno_uid = $_POST['organization'];
+    $new_organization = $_POST['new_organization'];
     $person_mno_uid = $_POST['person'];
     $new_person_title = $_POST['new_person_title'];
     $new_person_first_name = $_POST['new_person_first_name'];
@@ -55,55 +55,70 @@ class FacciController extends CController {
     $action_others = $_POST['action_others'];
 
     // Extract Person and Organization
-    if (is_null($organziation) || $organziation == '') {
-      $organziation = MnoSurveyProcessor::findOrCreateOrganization($new_organziation);
+    if(is_null($organization_mno_uid) || $organization_mno_uid == '') {
+      $organization_label = MnoSurveyProcessor::findOrCreateOrganization($new_organization);
+    } else {
+      $organization_label = MnoSoaOrganization::getLocalEntityByLocalIdentifier($organization_mno_uid);
     }
 
-    if (is_null($person_mno_uid) || $person_mno_uid == '') {
-      $person_mno_uid = MnoSurveyProcessor::findOrCreatePerson("$new_person_first_name $new_person_last_name", $organziation);
+    if(is_null($person_mno_uid) || $person_mno_uid == '') {
+      $person_label = MnoSurveyProcessor::findOrCreatePerson("$new_person_first_name $new_person_last_name", $organization_label);
+    } else {
+      $person_label = MnoSoaPerson::getLocalEntityByLocalIdentifier($person_mno_uid);
     }
 
-    if(!is_null($organziation) && !is_null($person_mno_uid)) {
+    if(!is_null($organization_label) && !is_null($person_label)) {
       // Build Person object to be sent
       $mno_person = new MnoSoaPerson();
       $local_entity = (object) array();
-      $local_entity->id = $person_mno_uid;
+      $local_entity->id = $person_label->participant_id;
       $local_entity->notes = array();
       $local_entity->tasks = array();
 
-      // Map notes to Person
+      // Generate meeting summary and save it as a person note
+      $meeting_summary = "Meeting date: $meeting_date\n";
+      $meeting_summary .= "Company: $organization_label->title\n";
+      $meeting_summary .= "Person: $person_label->firstname $person_label->lastname\n";
+      $meeting_summary .= "Type: $customer_type\n";
+      
       for ($i = 1; $i <= 10; $i++) {
         $topic = $_POST["topic$i"];
         if(!is_null($topic) && $topic!='') {
-          $note_id = uniqid();
-          $local_entity->notes[$note_id] = array('description' => $topic);
+          $meeting_summary .= "Topic $i: $topic\n";
         }
       }
 
+      $meeting_summary .= "Description: $description\n";
+
+      $note_id = uniqid();
+      $local_entity->notes[$note_id] = array('tag' => 'Meeting Summary', 'description' => $meeting_summary);
+
       // Map activities to Person
       foreach ($actions as $index => $action_name) {
-        $action_other = $action_others[$index];
-        $action_description = $action_descriptions[$index];
-        $action_assignee = $action_assignees[$index];
-        $action_due_date = $action_due_dates[$index];
-        $action_name_combined = ((is_null($action_name) || $action_name == '') ? $action_other : $action_name) . " - " . $action_description;
+        if(isset($action_name) && $action_name != '') {
+          $action_other = $action_others[$index];
+          $action_description = $action_descriptions[$index];
+          $action_assignee = $action_assignees[$index];
+          $action_due_date = $action_due_dates[$index];
+          $action_name_combined = ((is_null($action_name) || $action_name == '') ? $action_other : $action_name) . " - " . $action_description;
 
-        $task_id = uniqid();
-        $start_date = time();
-        $due_date = strtotime($action_due_date);
-        $assigned_to = array($action_assignee => "ACTIVE");
+          $task_id = uniqid();
+          $start_date = time();
+          $due_date = strtotime($action_due_date);
+          $assigned_to = array($action_assignee => "ACTIVE");
 
-        MnoSoaLogger::debug(__FUNCTION__ . " creating task: name=$action_name_combined, id=$task_id, start_date=$start_date, due_date=$due_date, assigned_to=$assigned_to");
-        $task = array(
-          "id" => $task_id,
-          "name" => $action_name_combined,
-          "description" => $description,
-          "status" => "Not Started",
-          "startDate" => $start_date,
-          "dueDate" => $due_date,
-          "assignedTo" => $assigned_to
-        );
-        $local_entity->tasks[$task_id] = $task;
+          MnoSoaLogger::debug(__FUNCTION__ . " creating task: name=$action_name_combined, id=$task_id, start_date=$start_date, due_date=$due_date, assigned_to=$assigned_to");
+          $task = array(
+            "id" => $task_id,
+            "name" => $action_name_combined,
+            "description" => $description,
+            "status" => "Not Started",
+            "startDate" => $start_date,
+            "dueDate" => $due_date,
+            "assignedTo" => $assigned_to
+          );
+          $local_entity->tasks[$task_id] = $task;
+        }
       }
 
       $mno_person->send($local_entity);
