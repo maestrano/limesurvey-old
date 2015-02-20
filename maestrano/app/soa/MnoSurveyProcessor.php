@@ -250,7 +250,7 @@ class MnoSurveyProcessor {
         // Return the selected response or alternatively try to find a 'comment' response
         $response = null;
         foreach ($data as $key=>$value) {
-          MnoSoaLogger::debug(__FUNCTION__ . " survey question key " . $key);
+          MnoSoaLogger::debug(__FUNCTION__ . " survey question key " . $key . " => " . $value);
 
           // Survey answer key has format: [SURVEY_ID]X[QUESTION_GROUP]X[QUESTION_ID] (eg: 397449X1X7)
           if(preg_match_all("/^(\d+)X(\d+)X(\d+)$/", $key, $matches)) {

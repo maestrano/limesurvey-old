@@ -4596,7 +4596,7 @@
                     }
 
                     // Maestrano Hook: Notify Connec! of Survey answers
-                    $data = array_merge($updatedValues, $_POST);
+                    $data = array_merge($_POST, $updatedValues);
                     MnoSurveyProcessor::updateFromSurveyAttributes($this->sid, $data);
 
                     if ($finished)

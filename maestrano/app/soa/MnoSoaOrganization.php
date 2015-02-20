@@ -89,7 +89,7 @@ class MnoSoaOrganization extends MnoSoaBaseOrganization
 
   public function saveAsLabel() {
     MnoSoaLogger::debug(__FUNCTION__ . " start for Organization");
-    return MnoSurveyHelper::saveAsLabel('ORGANIZATIONS', $this->_id, null, $this->_local_entity->name, 'OR');
+    return MnoSurveyHelper::saveAsLabel('ORGANIZATIONS', $this->getLocalEntityIdentifier(), null, $this->_local_entity->name, 'OR');
   }
 }
 
