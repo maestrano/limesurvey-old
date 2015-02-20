@@ -257,7 +257,7 @@ class MnoSoaPerson extends MnoSoaBasePerson
 
         // Save Person as new possible Answer to surveys
         MnoSoaLogger::debug(__FUNCTION__ . " saving person as a new possible answer");
-        $questions = Questions::model()->findAllByAttributes(array('title' => 'PERSON'));
+        $questions = Questions::model()->findAllByAttributes(array('title' => 'PERSONS'));
         foreach ($questions as $question) {
           $qid = $question->attributes['qid'];
 
@@ -273,7 +273,9 @@ class MnoSoaPerson extends MnoSoaBasePerson
             $answer->language = $lbl->language;
           }
           $answer->answer = $lbl->title;
+MnoSoaLogger::debug("CREATE NEW POSSIBLE ANSWER: " . json_encode($answer->qid) . " " . json_encode($answer->answer) . " " . json_encode($answer->code) . " " . json_encode($answer->sortorder));
           $answer->save();
+MnoSoaLogger::debug("AFTER SAVE: " . json_encode($answer));
         }
 
         MnoSoaLogger::debug(__FUNCTION__ . " end");

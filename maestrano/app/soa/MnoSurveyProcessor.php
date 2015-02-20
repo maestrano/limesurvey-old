@@ -2,12 +2,11 @@
 
 /**
  * Survey processing.
- * Extract relevant data and send to ESB.
+ * Extract relevant data and send to Connec!.
  */
-class MnoSurveyProcessor
-{
+class MnoSurveyProcessor {
     public static function updateFromSurveyAttributes($survey_id, $data) {
-        MnoSoaLogger::debug(__FUNCTION__ . " start");
+        MnoSoaLogger::debug(__FUNCTION__ . " start with data " . json_encode($data));
 
         // Find or Create an Organization based on user selection
         $organization_label = MnoSurveyProcessor::extractSelectedOrganization($survey_id, $data);
@@ -39,7 +38,7 @@ class MnoSurveyProcessor
         $local_entity->notes = array();
 
         // Map each survey answer to a note
-        $ignored_questions = array("ORGANIZATION", "PERSON");
+        $ignored_questions = array("ORGANIZATIONS", "PERSONS");
         foreach ($data as $key=>$value) {
           if(preg_match_all("/(\d+)X(\d+)X(\d+).*/", $key, $matches)) {
             $val = (is_null($value) ? NULL : $value['value']);
@@ -74,8 +73,16 @@ class MnoSurveyProcessor
           }
         }
 
+        // Push updated Person to Connec!
         $mno_person = new MnoSoaPerson();
         $mno_person->send($local_entity);
+
+        // Push an EventOrder
+        $event_order_data = MnoSurveyProcessor::extractEventOrder($survey_id, $data, $mno_person_id);
+        if(!is_null($event_order_data)) {
+          $mno_event_order = new MnoSoaEventOrder();
+          $mno_event_order->send($event_order_data);
+        }
  
         MnoSoaLogger::debug(__FUNCTION__ . " end");
     }
@@ -84,13 +91,12 @@ class MnoSurveyProcessor
         MnoSoaLogger::debug(__FUNCTION__ . " start");
         
         // Find if an ORGANIZATION question exists in the survey
-        $orgQuestion = Questions::model()->findByAttributes(array('title' => 'ORGANIZATION', 'sid' => $survey_id));
+        $orgQuestion = MnoSurveyProcessor::getQuestion($survey_id, 'ORGANIZATIONS');
         if(is_null($orgQuestion)) {
           MnoSoaLogger::debug(__FUNCTION__ . " survey does not map organization, skipping.");
           return null;
         }
-        MnoSoaLogger::debug(__FUNCTION__ . " organization question id: " . $orgQuestion->qid);
-        
+
         // Find selected Organization or create one
         $selectedOrganization = MnoSurveyProcessor::getResponse($data, $orgQuestion->qid);
         return MnoSurveyProcessor::findOrCreateOrganization($selectedOrganization);
@@ -135,12 +141,11 @@ class MnoSurveyProcessor
         MnoSoaLogger::debug(__FUNCTION__ . " start for organization_label: " . json_encode($organization_label));
         
         // Find if a PERSON question exists in the survey
-        $personQuestion = Questions::model()->findByAttributes(array('title' => 'PERSON', 'sid' => $survey_id));
+        $personQuestion = MnoSurveyProcessor::getQuestion($survey_id, 'PERSONS');
         if(is_null($personQuestion)) {
           MnoSoaLogger::debug(__FUNCTION__ . " survey does not map person, skipping.");
           return null;
         }
-        MnoSoaLogger::debug(__FUNCTION__ . " person question id: " . $personQuestion->qid);
         
         // Find selected Organization or create one
         $selectedPerson = MnoSurveyProcessor::getResponse($data, $personQuestion->qid);
@@ -199,6 +204,46 @@ class MnoSurveyProcessor
         return $person_label;
     }
 
+    private static function extractEventOrder($survey_id, $data, $mno_person_id) {
+        MnoSoaLogger::debug(__FUNCTION__ . " start");
+
+        // Extract the Event ID
+        $event_code = $data['EVENT'];
+        if($event_code === '') { return null; }
+
+        $event_label = Label::model()->findByAttributes(array('code' => $event_code));
+        $event_id = $event_label['mno_uid'];
+
+        // Extract number of tickets
+        $tickets = 0;
+        $ticketQuestion = MnoSurveyProcessor::getQuestion($survey_id, 'TICKET_AMOUNT');
+        if(is_null($ticketQuestion)) {
+          MnoSoaLogger::debug(__FUNCTION__ . " survey does not map ticket, skipping.");
+        } else {
+          $selectedTicket = MnoSurveyProcessor::getResponse($data, $ticketQuestion->qid);
+          $tickets = intval($selectedTicket);
+        }
+
+        // Create the EventOrder object
+        $event_order_hash = (object) array();
+        $event_order_hash->status = 'PLACED';
+        $event_order_hash->event_id = $event_id;
+        $event_order_hash->person_id = $mno_person_id;
+        $event_order_hash->attendees = array();
+        array_push($event_order_hash->attendees, array('status' => 'ATTENDING', 'quantity' => $tickets, 'person' => array('id' => $mno_person_id)));
+
+        return $event_order_hash;
+    }
+
+    private static function getQuestion($survey_id, $title) {
+      $question = Questions::model()->findByAttributes(array('title' => $title, 'sid' => $survey_id));
+      if(is_null($question)) { return null; }
+      
+      MnoSoaLogger::debug(__FUNCTION__ . " $title question id: " . $question->qid);
+      return $question;
+    }
+
+    // Find the user response to a question by Question ID
     private static function getResponse($data, $questionId) {
         MnoSoaLogger::debug(__FUNCTION__ . " start");
 

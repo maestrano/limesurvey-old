@@ -110,7 +110,7 @@ class MnoSoaDB extends MnoSoaBaseDB {
             }
 	}
 	
-        MnoSoaLogger::debug(__CLASS__ . ' ' . __FUNCTION__ . "returning mno_entity = ".json_encode($local_entity));
+        MnoSoaLogger::debug(__CLASS__ . ' ' . __FUNCTION__ . " returning mno_entity = ".json_encode($local_entity));
 	return $local_entity;
     }
     

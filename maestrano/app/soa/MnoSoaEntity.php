@@ -37,6 +37,18 @@ class MnoSoaEntity extends MnoSoaBaseEntity {
                 }
             }
         }
+
+        if (!empty($msg->events) && class_exists('MnoSoaEvent')) {
+            MnoSoaLogger::debug(__FUNCTION__ . " has events");
+            foreach ($msg->events as $event) {
+                MnoSoaLogger::debug(__FUNCTION__ .  " event id = " . $event->id);
+                try {
+                    $mno_event = new MnoSoaEvent();
+                    $mno_event->receive($event);
+                } catch (Exception $e) {
+                }
+            }
+        }
         
         MnoSoaLogger::info(__FUNCTION__ .  " getUpdates successful (timestamp=" . $timestamp . ")");
         return true;
@@ -59,6 +71,12 @@ class MnoSoaEntity extends MnoSoaBaseEntity {
                 if (class_exists('MnoSoaOrganization')) {
                     $mno_organization = new MnoSoaOrganization();
                     $mno_organization->receiveNotification($notification);
+                }
+                break;
+            case "EVENTS":
+                if (class_exists('MnoSoaEvent')) {
+                    $mno_event = new MnoSoaEvent();
+                    $mno_event->receiveNotification($notification);
                 }
                 break;
         }

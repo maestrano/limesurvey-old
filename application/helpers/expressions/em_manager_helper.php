@@ -4595,8 +4595,9 @@
                         $cSave->set_answer_time();
                     }
 
-                    // Maestrano: Notify connec of Survey answers
-                    MnoSurveyProcessor::updateFromSurveyAttributes($this->sid, $updatedValues);
+                    // Maestrano Hook: Notify Connec! of Survey answers
+                    $data = array_merge($updatedValues, $_POST);
+                    MnoSurveyProcessor::updateFromSurveyAttributes($this->sid, $data);
 
                     if ($finished)
                     {
