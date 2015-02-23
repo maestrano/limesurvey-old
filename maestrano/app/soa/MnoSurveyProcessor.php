@@ -40,22 +40,22 @@ class MnoSurveyProcessor {
         // Map each survey answer to a note
         $ignored_questions = array("ORGANIZATIONS", "PERSONS");
         foreach ($data as $key=>$value) {
-          if(preg_match_all("/(\d+)X(\d+)X(\d+).*/", $key, $matches)) {
+          if(preg_match_all("/^(\d+)X(\d+)X(\d+).*$/", $key, $matches)) {
             $val = (is_null($value) ? NULL : $value['value']);
-            if(is_null($val)) {
-              continue;
-            }
+            if(is_null($val)) { continue; }
 
             // Delete 'comment' from question key ('xxxx-xxxxcomment' becomes 'xxxx-xxxx')
             $key = str_replace("comment", "", $key);
 
             $question_id = $matches[3][0];
-            MnoSoaLogger::debug(__FUNCTION__ . " finding question " . $question_id);
+            MnoSoaLogger::debug(__FUNCTION__ . " finding question " . $question_id . " - key " . $key);
 
             $question = Questions::model()->findByAttributes(array('qid' => $question_id));
             if (in_array($question->title, $ignored_questions)) {
               continue;
             }
+
+            MnoSoaLogger::debug(__FUNCTION__ . " mapping question " . json_encode($question));
 
             $answer = Answers::model()->findByAttributes(array('code' => $val));
             $answer_value = $answer ? $answer->answer : $val;
@@ -209,7 +209,10 @@ class MnoSurveyProcessor {
 
         // Extract the Event ID
         $event_code = $data['EVENT'];
-        if($event_code === '') { return null; }
+        if($event_code === '') {
+          MnoSoaLogger::debug(__FUNCTION__ . " survey does not map event, skipping.");
+          return null;
+        }
 
         $event_label = Label::model()->findByAttributes(array('code' => $event_code));
         $event_id = $event_label['mno_uid'];
