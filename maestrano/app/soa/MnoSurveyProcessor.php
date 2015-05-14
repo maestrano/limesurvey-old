@@ -11,10 +11,8 @@ class MnoSurveyProcessor {
         // Find or Create an Organization based on user selection
         $organization_label = MnoSurveyProcessor::extractSelectedOrganization($survey_id, $data);
         if(is_null($organization_label)) {
-          MnoSoaLogger::debug(__FUNCTION__ . " end - Organization not created");
-          return null;
+          MnoSoaLogger::debug(__FUNCTION__ . " Organization not created");
         }
-        $mno_organization_id = $organization_label->mno_uid;
 
         // Find or Create a Person based on user selection
         $mno_person = MnoSurveyProcessor::extractSelectedPerson($survey_id, $data, $organization_label);
@@ -93,8 +91,8 @@ class MnoSurveyProcessor {
         // Find if an ORGANIZATION question exists in the survey
         $orgQuestion = MnoSurveyProcessor::getQuestion($survey_id, 'ORGANIZATIONS');
         if(is_null($orgQuestion)) {
-          MnoSoaLogger::debug(__FUNCTION__ . " survey does not map organization, skipping.");
-          return null;
+          MnoSoaLogger::debug(__FUNCTION__ . " survey does not map organization, returning Individual.");
+          return MnoSurveyHelper::getLocalEntityByLocalIdentifier('0');
         }
 
         // Find selected Organization or create one
@@ -180,7 +178,9 @@ class MnoSurveyProcessor {
             $local_entity->lastname = $selectedPerson;
           }
           
-          $local_entity->organization = $organization_label->mno_uid;
+          // If Individual, do not set Organization
+          if($organization_label->mno_uid != '0') { $local_entity->organization = $organization_label->mno_uid; }
+          
           $local_entity->blacklisted = 'N';
           $local_entity->language = 'en';
           $local_entity->owner_uid = 1;
@@ -216,6 +216,11 @@ class MnoSurveyProcessor {
 
         $event_label = Label::model()->findByAttributes(array('code' => $event_code));
         $event_id = $event_label['mno_uid'];
+        MnoSoaLogger::debug(__FUNCTION__ . " map event code=$event_code, mno_id=$event_id");
+        if($event_id === '') {
+          MnoSoaLogger::debug(__FUNCTION__ . " Event code not found, skipping");
+          return null;
+        }
 
         // Extract number of tickets
         $tickets = 0;

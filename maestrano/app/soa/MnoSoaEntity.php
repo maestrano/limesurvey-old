@@ -11,6 +11,7 @@ class MnoSoaEntity extends MnoSoaBaseEntity {
     {
         MnoSoaLogger::info(__FUNCTION__ .  " start getUpdates (timestamp=" . $timestamp . ")");
         $msg = $this->callMaestrano("GET", "updates" . '/' . $timestamp);
+        MnoSoaLogger::info(__FUNCTION__ .  " getUpdates returned " . json_encode($msg));
         if (empty($msg)) { return false; }
         MnoSoaLogger::debug(__FUNCTION__ .  " after maestrano call");
         

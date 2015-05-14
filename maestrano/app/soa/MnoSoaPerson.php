@@ -211,20 +211,26 @@ class MnoSoaPerson extends MnoSoaBasePerson
         // The Label code is a combination of the person's organization code and a counter
         // (eg: 'O10P4' for Organization n10 and Person n4)
         if(is_null($this->_role) || is_null($this->_role->organization) || is_null($this->_role->organization->id)) {
-          MnoSoaLogger::debug(__FUNCTION__ . " person has no organization, skipping");
-          return null;
+          MnoSoaLogger::debug(__FUNCTION__ . " person has no organization, save as individual");
+
+          $organization_id = '0';
+          $individual = Label::model()->findByAttributes(array('mno_uid' => $organization_id));
+          if(!$individual) {
+            $orgLabel = MnoSurveyHelper::saveAsLabel('ORGANIZATIONS', $organization_id, null, ' Individual', 'OR');
+          }
+        } else {
+          $organization_id = $this->_role->organization->id;
+          $orgLabel = Label::model()->findByAttributes(array('mno_uid' => $organization_id));
         }
 
-        $orgLabel = Label::model()->findByAttributes(array('mno_uid' => $this->_role->organization->id));
         $pplLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'PERSONS'));
         
         if(is_null($pplLabelSet)) {
           MnoSoaLogger::error(__FUNCTION__ . " Labelset with mno_uid 'PERSONS' is missing");
           return null;
         }
-
         if(is_null($orgLabel)) {
-          MnoSoaLogger::error(__FUNCTION__ . " No Label found for Organization " . $this->_role->organization->id);
+          MnoSoaLogger::error(__FUNCTION__ . " No Label found for Organization " . $organization_id);
           return null;
         }
 
@@ -273,9 +279,7 @@ class MnoSoaPerson extends MnoSoaBasePerson
             $answer->language = $lbl->language;
           }
           $answer->answer = $lbl->title;
-MnoSoaLogger::debug("CREATE NEW POSSIBLE ANSWER: " . json_encode($answer->qid) . " " . json_encode($answer->answer) . " " . json_encode($answer->code) . " " . json_encode($answer->sortorder));
           $answer->save();
-MnoSoaLogger::debug("AFTER SAVE: " . json_encode($answer));
         }
 
         MnoSoaLogger::debug(__FUNCTION__ . " end");
