@@ -93,17 +93,16 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
     
     protected function pushId() 
     {
-	$local_id = $this->getLocalEntityIdentifier();
-	
+        $local_id = $this->getLocalEntityIdentifier();
         if (empty($local_id)) {
+          MnoSoaLogger::debug(__FUNCTION__ . " no local id, skipping");
             return;
         }
         
-	$mno_id = MnoSoaDB::getMnoIdByLocalId($local_id, static::getLocalEntityName(), static::getMnoEntityName());
-
-	if (!$this->isValidIdentifier($mno_id)) {
+        $mno_id = MnoSoaDB::getMnoIdByLocalId($local_id, static::getLocalEntityName(), static::getMnoEntityName());
+        if (!$this->isValidIdentifier($mno_id)) {
             return;
-	}
+        }
         
         $this->_id = $mno_id->_id;
     }
@@ -119,20 +118,20 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
     */
     protected function pullId() 
     {
-	if (!empty($this->_id)) {
-            $local_id = MnoSoaDB::getLocalIdByMnoId($this->_id, static::getMnoEntityName(), static::getLocalEntityName());
-	    
-	    if ($this->isValidIdentifier($local_id)) {
-                $this->_local_entity = static::getLocalEntityByLocalIdentifier($local_id->_id);
-		return constant('MnoSoaBaseEntity::STATUS_EXISTING_ID');
-	    } else if ($this->isDeletedIdentifier($local_id)) {
-                return constant('MnoSoaBaseEntity::STATUS_DELETED_ID');
-            } else {
-                $this->_local_entity = static::createLocalEntity();
-		return constant('MnoSoaBaseEntity::STATUS_NEW_ID');
-	    }
-	}
-        return constant('MnoSoaBaseEntity::STATUS_ERROR');
+      if (!empty($this->_id)) {
+        $local_id = MnoSoaDB::getLocalIdByMnoId($this->_id, static::getMnoEntityName(), static::getLocalEntityName());
+      
+        if ($this->isValidIdentifier($local_id)) {
+            $this->_local_entity = static::getLocalEntityByLocalIdentifier($local_id->_id);
+            return constant('MnoSoaBaseEntity::STATUS_EXISTING_ID');
+        } else if ($this->isDeletedIdentifier($local_id)) {
+            return constant('MnoSoaBaseEntity::STATUS_DELETED_ID');
+        } else {
+            $this->_local_entity = static::createLocalEntity();
+            return constant('MnoSoaBaseEntity::STATUS_NEW_ID');
+        }
+      }
+      return constant('MnoSoaBaseEntity::STATUS_ERROR');
     }
     
     public static function createGUID()
@@ -151,7 +150,7 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
      *                            REST API METHODS                            *
      **************************************************************************/
     
-    public function send($local_entity) 
+    public function send($local_entity)
     {
         MnoSoaLogger::debug(__FUNCTION__ . " start");
 
@@ -160,30 +159,29 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
         $message = $this->build();
         $message = json_encode($message);
         $mno_had_no_id = empty($this->_id);
-        
         if ($mno_had_no_id) {
-            MnoSoaLogger::debug(__FUNCTION__ . " $this->_id = ".$this->_id);
+            MnoSoaLogger::debug(__FUNCTION__ . " create new entity against url " . $this->_create_rest_entity_name);
             $response = $this->callMaestrano($this->_create_http_operation, $this->_create_rest_entity_name, $message);
         } else {
+            MnoSoaLogger::debug(__FUNCTION__ . " update entity against url " . $this->_update_rest_entity_name . '/' . $this->_id);
             $response = $this->callMaestrano($this->_update_http_operation, $this->_update_rest_entity_name . '/' . $this->_id, $message);
         }
         
         if (empty($response)) {
             return false;
         }
-	
+  
         $local_entity_id = $this->getLocalEntityIdentifier();
         $local_entity_now_has_id = !empty($local_entity_id);
         
         $mno_response_id = $response->id;
         $mno_response_has_id = !empty($mno_response_id);
-	
         if ($mno_had_no_id && $local_entity_now_has_id && $mno_response_has_id) {
             MnoSoaDB::addIdMapEntry($local_entity_id, static::getLocalEntityName(), $mno_response_id, static::getMnoEntityName());
         }
         
         MnoSoaLogger::debug(__FUNCTION__ . " end");
-        return true;
+        return $mno_response_id;
     }
     
     public function receive($mno_entity) 
@@ -203,7 +201,7 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
     {
         MnoSoaLogger::debug(__FUNCTION__ .  " start local_id = " . $local_id);
         $mno_id = MnoSoaDB::getMnoIdByLocalId($local_id, $this->getLocalEntityName(), $this->getMnoEntityName());
-	
+  
         if ($this->isValidIdentifier($mno_id)) {
             MnoSoaLogger::debug(__FUNCTION__ . " corresponding mno_id = " . $mno_id->_id);
             
@@ -239,22 +237,22 @@ class MnoSoaBaseEntity extends MnoSoaBaseHelper
       MnoSoaLogger::debug(__FUNCTION__ . " maestrano msg = ".$msg);
       curl_setopt($curl, CURLOPT_HEADER, false);
       curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-type: application/json"));
-      curl_setopt($curl, CURLOPT_TIMEOUT, '60');
+      curl_setopt($curl, CURLOPT_HTTPHEADER, array("Authorization: Basic " . base64_encode($GLOBALS['api_key'].":".$GLOBALS['api_secret']), "Content-type: application/json"));
+      curl_setopt($curl, CURLOPT_TIMEOUT, '600');
       
       MnoSoaLogger::debug(__FUNCTION__ . " before switch");
       
       switch ($operation) {
-	  case "POST":
-	      curl_setopt($curl, CURLOPT_POST, true);
-	      curl_setopt($curl, CURLOPT_POSTFIELDS, $msg);
-	      break;
-	  case "PUT":
-	      curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
-	      curl_setopt($curl, CURLOPT_POSTFIELDS, $msg);
-	      break;
-	  case "GET":
-	      break;
+    case "POST":
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $msg);
+        break;
+    case "PUT":
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $msg);
+        break;
+    case "GET":
+        break;
           case "DELETE":
               curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "DELETE");
               break;

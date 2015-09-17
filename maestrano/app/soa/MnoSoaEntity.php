@@ -11,8 +11,22 @@ class MnoSoaEntity extends MnoSoaBaseEntity {
     {
         MnoSoaLogger::info(__FUNCTION__ .  " start getUpdates (timestamp=" . $timestamp . ")");
         $msg = $this->callMaestrano("GET", "updates" . '/' . $timestamp);
+        MnoSoaLogger::info(__FUNCTION__ .  " getUpdates returned " . json_encode($msg));
         if (empty($msg)) { return false; }
         MnoSoaLogger::debug(__FUNCTION__ .  " after maestrano call");
+        
+        if (!empty($msg->organizations) && class_exists('MnoSoaOrganization')) {
+            MnoSoaLogger::debug(__FUNCTION__ . " has organizations");
+            foreach ($msg->organizations as $organization) {
+                MnoSoaLogger::debug(__FUNCTION__ .  " organization id = " . $organization->id);
+                try {
+                    $mno_organization = new MnoSoaOrganization();
+                    $mno_organization->receive($organization);
+                } catch (Exception $e) {
+                }
+            }
+        }
+
         if (!empty($msg->persons) && class_exists('MnoSoaPerson')) {
             MnoSoaLogger::debug(__FUNCTION__ . " has persons");
             foreach ($msg->persons as $person) {
@@ -20,6 +34,18 @@ class MnoSoaEntity extends MnoSoaBaseEntity {
                 try {
                     $mno_person = new MnoSoaPerson();
                     $mno_person->receive($person);
+                } catch (Exception $e) {
+                }
+            }
+        }
+
+        if (!empty($msg->events) && class_exists('MnoSoaEvent')) {
+            MnoSoaLogger::debug(__FUNCTION__ . " has events");
+            foreach ($msg->events as $event) {
+                MnoSoaLogger::debug(__FUNCTION__ .  " event id = " . $event->id);
+                try {
+                    $mno_event = new MnoSoaEvent();
+                    $mno_event->receive($event);
                 } catch (Exception $e) {
                 }
             }
@@ -38,8 +64,20 @@ class MnoSoaEntity extends MnoSoaBaseEntity {
         switch ($notification_entity) {
             case "PERSONS":
                 if (class_exists('MnoSoaPerson')) {
-                    $mno_person = new MnoSoaPerson();		
+                    $mno_person = new MnoSoaPerson();
                     $mno_person->receiveNotification($notification);
+                }
+                break;
+            case "ORGANIZATIONS":
+                if (class_exists('MnoSoaOrganization')) {
+                    $mno_organization = new MnoSoaOrganization();
+                    $mno_organization->receiveNotification($notification);
+                }
+                break;
+            case "EVENTS":
+                if (class_exists('MnoSoaEvent')) {
+                    $mno_event = new MnoSoaEvent();
+                    $mno_event->receiveNotification($notification);
                 }
                 break;
         }

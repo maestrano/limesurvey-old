@@ -86,6 +86,13 @@
                 <a href="<?php echo $this->createUrl("admin/participants/sa/index"); ?>" >
                     <img src='<?php echo $sImageURL;?>cpdb.png' alt='<?php $clang->eT("Central participant database/panel");?>' width='<?php echo $iconsize;?>' height='<?php echo $iconsize;?>'/></a>
                 <?php } ?>
+            
+            <!-- FACCI Customisation -->
+            <img alt="" class="separator" src="/styles/gringegreen/images/separator.gif">
+            <a href="<?php echo $this->createUrl("/facci/create", array('token' => '076823aa27bc')); ?>">
+              <img src='<?php echo $sImageURL;?>facci.png' alt='<?php $clang->eT("Facci meeting summary page");?>' width='<?php echo $iconsize;?>' height='<?php echo $iconsize;?>'/>
+            </a>
+
         </div>
         <div class='menubar-right'>
             <label for='surveylist'><?php $clang->eT("Surveys:");?></label>

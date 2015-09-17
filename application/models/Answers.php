@@ -76,7 +76,7 @@ class Answers extends CActiveRecord
     {
         return array(
             array('qid','numerical', 'integerOnly'=>true),
-            array('code','length', 'min' => 1, 'max'=>5),
+            array('code','length', 'min' => 1, 'max'=>12),
             array('answer','LSYii_Validators'),
             array('sortorder','numerical', 'integerOnly'=>true,'allowEmpty'=>true),
             array('assessment_value','numerical', 'integerOnly'=>true,'allowEmpty'=>true),

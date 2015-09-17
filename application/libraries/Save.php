@@ -155,6 +155,7 @@ class Save {
                     "startlanguage" => $_SESSION['survey_'.$surveyid]['s_lang'],
                     "refurl" => getenv("HTTP_REFERER")
                 );
+                MnoSoaLogger::debug(__FUNCTION__ . " insert data: " . $sdata);
                 if (Survey_dynamic::model($thissurvey['sid'])->insert($sdata))    // Checked
                 {
                     $srid = getLastInsertID('{{survey_' . $surveyid . '}}');

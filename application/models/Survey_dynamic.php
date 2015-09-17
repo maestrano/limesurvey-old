@@ -85,12 +85,14 @@ class Survey_dynamic extends LSActiveRecord
      */
     public function insertRecords($data)
     {
+        MnoSoaLogger::debug(__FUNCTION__ . " INSERT RECORDS: " . $data);
         $record = new self;
         foreach ($data as $k => $v)
         {
             $search = array('`', "'");
             $k = str_replace($search, '', $k);
             $v = str_replace($search, '', $v);
+            MnoSoaLogger::debug(__FUNCTION__ . " INSERT RECORD: " . $k . " => " . $v);
             $record->$k = $v;
         }
 

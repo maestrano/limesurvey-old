@@ -27,6 +27,8 @@ require_once MNO_PHP_DIR . 'soa/MnoSoaBaseHelper.php';
 require_once MNO_PHP_DIR . 'soa/MnoSoaBaseEntity.php';
 require_once MNO_PHP_DIR . 'soa/MnoSoaBaseOrganization.php';
 require_once MNO_PHP_DIR . 'soa/MnoSoaBasePerson.php';
+require_once MNO_PHP_DIR . 'soa/MnoSoaBaseEvent.php';
+require_once MNO_PHP_DIR . 'soa/MnoSoaBaseEventOrder.php';
 require_once MNO_PHP_DIR . 'soa/MnoSoaTransformer.php';
 
 //-----------------------------------------------
@@ -36,4 +38,9 @@ define('MNO_APP_DIR', MAESTRANO_ROOT . '/app/');
 require_once MNO_APP_DIR . 'sso/MnoSsoUser.php';
 require_once MNO_APP_DIR . 'soa/MnoSoaEntity.php';
 require_once MNO_APP_DIR . 'soa/MnoSoaDB.php';
+require_once MNO_APP_DIR . 'soa/MnoSoaOrganization.php';
 require_once MNO_APP_DIR . 'soa/MnoSoaPerson.php';
+require_once MNO_APP_DIR . 'soa/MnoSoaEvent.php';
+require_once MNO_APP_DIR . 'soa/MnoSoaEventOrder.php';
+require_once MNO_APP_DIR . 'soa/MnoSurveyProcessor.php';
+require_once MNO_APP_DIR . 'soa/MnoSurveyHelper.php';

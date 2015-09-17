@@ -90,6 +90,9 @@ class MnoSsoUser extends MnoSsoBaseUser
       // Build user and save it
       $user = $this->buildLocalUser();
       $user->save();
+
+      // Build a label using this user
+      $this->saveAsLabel();
       
       $lid = $user->uid;
     }
@@ -124,6 +127,22 @@ class MnoSsoUser extends MnoSsoBaseUser
     $user->manage_label = $is_admin;
     
     return $user;
+  }
+
+  protected function saveAsLabel() {
+    // Save the User as a Label under Labelset 'USERS'
+    $usersLabelSet = Labelsets::model()->findByAttributes(array('mno_uid' => 'USERS'));
+    $count = Label::model()->count('lid = ' . $usersLabelSet->lid);
+    $lbl = new Label;
+    $lbl->lid = $usersLabelSet->lid;
+    $lbl->sortorder = $count;
+    $lbl->code = 'U' . $count;
+    $lbl->title = "$this->name $this->surname";
+    $lbl->language = 'en';
+    $lbl->mno_uid = $this->uid;
+    $lbl->save();
+
+    return $lbl;
   }
   
   /**

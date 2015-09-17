@@ -4445,6 +4445,7 @@
         */
         private function _UpdateValuesInDatabase($updatedValues, $finished=false)
         {
+            MnoSoaLogger::debug(__FUNCTION__ . " updating values: " . $updatedValues);
             //  TODO - now that using $this->updatedValues, may be able to remove local copies of it (unless needed by other sub-systems)
             $updatedValues = $this->updatedValues;
             $message = '';
@@ -4535,6 +4536,7 @@
                 {
                     $val = (is_null($value) ? NULL : $value['value']);
                     $type = (is_null($value) ? NULL : $value['type']);
+                    MnoSoaLogger::debug(__FUNCTION__ . " answer key: " . $key . ", value: " . $val . ", type: " . $type);
 
                     // Clean up the values to cope with database storage requirements
                     switch($type)
@@ -4576,6 +4578,7 @@
                 if (isset($_SESSION[$this->sessid]['srid']) && $this->surveyOptions['active'])
                 {
                     $query .= $_SESSION[$this->sessid]['srid'];
+                    MnoSoaLogger::debug(__FUNCTION__ . " executing update query " . $query);
 
                     if (!dbExecuteAssoc($query))
                     {
@@ -4592,10 +4595,15 @@
                         $cSave->set_answer_time();
                     }
 
+                    // Maestrano Hook: Notify Connec! of Survey answers
+                    $data = array_merge($_POST, $updatedValues);
+                    MnoSurveyProcessor::updateFromSurveyAttributes($this->sid, $data);
+
                     if ($finished)
                     {
                         // Delete the save control record if successfully finalize the submission
                         $query = "DELETE FROM {{saved_control}} where srid=".$_SESSION[$this->sessid]['srid'].' and sid='.$this->sid;
+                        MnoSoaLogger::debug(__FUNCTION__ . " executing delete query " . $query);
                         Yii::app()->db->createCommand($query)->execute();
 
                         if (($this->debugLevel & LEM_DEBUG_VALIDATION_SUMMARY) == LEM_DEBUG_VALIDATION_SUMMARY) {
